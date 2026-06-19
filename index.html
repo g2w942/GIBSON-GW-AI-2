@@ -1,0 +1,1210 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>GIBSON GW — EDITH v5.0 FINAL</title>
+    <meta name="description" content="Classified AI System - Password Protected">
+    <meta name="theme-color" content="#0d0e12">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <link rel="manifest" href="manifest.json">
+    
+    <!-- Core Libraries -->
+    <script src="https://js.puter.com/v2/"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+    <script src="https://unpkg.com/docx@8.5.0/build/index.umd.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
+
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        :root {
+            --bg-primary: #0d0e12;
+            --bg-secondary: #1a1c23;
+            --bg-tertiary: #252830;
+            --cyan: #00f3ff;
+            --cyan-glow: rgba(0, 243, 255, 0.3);
+            --text-primary: #e2e8f0;
+            --text-secondary: #94a3b8;
+            --danger: #ff3366;
+            --success: #00ff88;
+            --warning: #fbbf24;
+            --purple: #a855f7;
+        }
+
+        body {
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            font-family: 'Courier New', monospace;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: linear-gradient(rgba(0,243,255,0.03) 1px, transparent 1px),
+                        linear-gradient(90deg, rgba(0,243,255,0.03) 1px, transparent 1px);
+            background-size: 50px 50px;
+            pointer-events: none;
+            z-index: 0;
+            animation: grid-move 20s linear infinite;
+        }
+
+        @keyframes grid-move {
+            0% { transform: translate(0, 0); }
+            100% { transform: translate(50px, 50px); }
+        }
+
+        /* Password Screen */
+        #passwordScreen {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: var(--bg-primary);
+            z-index: 10000;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            animation: fadeIn 0.5s ease;
+        }
+
+        .password-container {
+            text-align: center;
+            padding: 40px;
+            border: 2px solid var(--cyan);
+            border-radius: 20px;
+            background: rgba(13, 14, 18, 0.95);
+            box-shadow: 0 0 50px var(--cyan-glow), inset 0 0 50px rgba(0,243,255,0.05);
+            max-width: 500px;
+            width: 90%;
+            animation: slideIn 0.6s ease;
+        }
+
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateY(-30px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .lock-icon {
+            font-size: 4em;
+            margin-bottom: 20px;
+            animation: pulse-lock 2s infinite;
+        }
+
+        @keyframes pulse-lock {
+            0%, 100% { transform: scale(1); text-shadow: 0 0 20px var(--cyan); }
+            50% { transform: scale(1.1); text-shadow: 0 0 40px var(--cyan), 0 0 60px var(--cyan-glow); }
+        }
+
+        .password-title {
+            font-size: 1.8em;
+            color: var(--cyan);
+            margin-bottom: 10px;
+            text-shadow: 0 0 15px var(--cyan);
+        }
+
+        .password-subtitle {
+            font-size: 0.85em;
+            color: var(--text-secondary);
+            margin-bottom: 30px;
+        }
+
+        .password-input {
+            width: 100%;
+            padding: 15px 25px;
+            background: var(--bg-secondary);
+            border: 2px solid rgba(0,243,255,0.3);
+            border-radius: 12px;
+            color: var(--cyan);
+            font-family: 'Courier New', monospace;
+            font-size: 1.2em;
+            text-align: center;
+            letter-spacing: 5px;
+            outline: none;
+            transition: all 0.3s;
+            margin-bottom: 20px;
+        }
+
+        .password-input:focus {
+            border-color: var(--cyan);
+            box-shadow: 0 0 25px var(--cyan-glow);
+            transform: scale(1.02);
+        }
+
+        .password-input.error {
+            border-color: var(--danger);
+            animation: shake 0.5s;
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            20%, 60% { transform: translateX(-10px); }
+            40%, 80% { transform: translateX(10px); }
+        }
+
+        .btn-enter {
+            width: 100%;
+            padding: 15px;
+            background: var(--cyan);
+            color: var(--bg-primary);
+            border: none;
+            border-radius: 12px;
+            font-family: 'Courier New', monospace;
+            font-size: 1.1em;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        .btn-enter:hover {
+            background: var(--success);
+            box-shadow: 0 0 30px var(--cyan-glow);
+            transform: translateY(-2px);
+        }
+
+        .error-message {
+            color: var(--danger);
+            margin-top: 15px;
+            font-size: 0.9em;
+            display: none;
+            animation: fadeIn 0.3s;
+        }
+
+        /* Main App */
+        #mainApp {
+            display: none;
+            animation: fadeIn 1s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        /* Header */
+        .header {
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            background: rgba(13, 14, 18, 0.95);
+            backdrop-filter: blur(10px);
+            border-bottom: 2px solid var(--cyan);
+            padding: 15px 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            box-shadow: 0 0 20px var(--cyan-glow);
+        }
+
+        .header-title {
+            font-size: 1.5em;
+            font-weight: bold;
+            color: var(--cyan);
+            text-shadow: 0 0 12px var(--cyan);
+        }
+
+        .header-subtitle {
+            font-size: 0.7em;
+            color: var(--text-secondary);
+            display: block;
+            margin-top: 3px;
+        }
+
+        .avatar {
+            width: 55px;
+            height: 55px;
+            border-radius: 50%;
+            border: 2px solid var(--cyan);
+            box-shadow: 0 0 15px var(--cyan-glow);
+            overflow: hidden;
+            background: var(--bg-secondary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            animation: pulse-avatar 2s infinite;
+        }
+
+        @keyframes pulse-avatar {
+            0%, 100% { box-shadow: 0 0 15px var(--cyan-glow); }
+            50% { box-shadow: 0 0 25px var(--cyan), 0 0 40px var(--cyan-glow); }
+        }
+
+        /* Status Bar */
+        .status-bar {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 20px;
+            background: var(--bg-secondary);
+            border-bottom: 1px solid rgba(0,243,255,0.2);
+            font-size: 0.8em;
+        }
+
+        .status-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: var(--success);
+            box-shadow: 0 0 10px var(--success);
+            animation: blink 2s infinite;
+        }
+
+        @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+
+        /* Main Content */
+        .main-content {
+            position: relative;
+            z-index: 1;
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        /* File Upload */
+        .file-upload-area {
+            border: 2px dashed rgba(0,243,255,0.4);
+            border-radius: 15px;
+            padding: 30px;
+            text-align: center;
+            margin: 20px 0;
+            cursor: pointer;
+            transition: all 0.3s;
+            background: rgba(0,243,255,0.02);
+        }
+
+        .file-upload-area:hover {
+            border-color: var(--cyan);
+            background: rgba(0,243,255,0.05);
+            transform: translateY(-2px);
+        }
+
+        .file-list { margin-top: 20px; }
+
+        .file-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px;
+            background: var(--bg-tertiary);
+            border-radius: 8px;
+            margin: 5px 0;
+            border-left: 3px solid var(--cyan);
+        }
+
+        .file-item .info { flex: 1; text-align: left; }
+        .file-item .name { color: var(--cyan); font-weight: bold; }
+        .file-item .size { color: var(--text-secondary); font-size: 0.85em; }
+        
+        .file-item .actions { display: flex; gap: 8px; }
+
+        .btn-small {
+            padding: 5px 12px;
+            border-radius: 6px;
+            border: 1px solid var(--cyan);
+            background: transparent;
+            color: var(--cyan);
+            cursor: pointer;
+            font-size: 0.75em;
+            font-family: 'Courier New', monospace;
+            transition: all 0.3s;
+        }
+
+        .btn-small:hover { background: var(--cyan); color: var(--bg-primary); }
+        .btn-small.edit { border-color: var(--purple); color: var(--purple); }
+        .btn-small.edit:hover { background: var(--purple); color: white; }
+        .btn-small.download { border-color: var(--success); color: var(--success); }
+        .btn-small.download:hover { background: var(--success); color: white; }
+
+        /* Chat */
+        .chat-container {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            margin-bottom: 150px;
+        }
+
+        .message {
+            display: flex;
+            gap: 12px;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .message.user { flex-direction: row-reverse; }
+
+        .message-avatar {
+            width: 35px;
+            height: 35px;
+            border-radius: 50%;
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2em;
+            border: 2px solid var(--cyan);
+            background: var(--bg-secondary);
+        }
+
+        .message-content {
+            background: var(--bg-secondary);
+            border: 1px solid rgba(0,243,255,0.2);
+            border-radius: 12px;
+            padding: 15px;
+            max-width: 85%;
+            line-height: 1.6;
+            font-size: 0.9em;
+            word-wrap: break-word;
+        }
+
+        .message.user .message-content {
+            background: rgba(0,243,255,0.1);
+            border-color: var(--cyan);
+        }
+
+        .message-content pre {
+            background: #0a0b0f;
+            border: 1px solid rgba(0,243,255,0.3);
+            border-radius: 8px;
+            padding: 15px;
+            overflow-x: auto;
+            margin: 10px 0;
+        }
+
+        .message-content img {
+            max-width: 100%;
+            border-radius: 8px;
+            margin: 10px 0;
+            border: 2px solid rgba(0,243,255,0.2);
+        }
+
+        /* Image Grid */
+        .image-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin: 15px 0;
+        }
+
+        .image-card {
+            background: var(--bg-secondary);
+            border: 2px solid rgba(0,243,255,0.2);
+            border-radius: 12px;
+            overflow: hidden;
+            transition: transform 0.3s;
+        }
+
+        .image-card:hover { transform: translateY(-5px); box-shadow: 0 10px 30px rgba(0,243,255,0.2); }
+        .image-card img { width: 100%; height: auto; display: block; margin: 0; border: none; }
+        .image-card .info { padding: 15px; font-size: 0.85em; }
+        .image-card .info .label { color: var(--text-secondary); margin-bottom: 5px; }
+
+        /* Modal */
+        .modal-overlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.9);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            padding: 20px;
+        }
+
+        .modal-overlay.active { display: flex; }
+
+        .modal-content {
+            background: var(--bg-secondary);
+            border: 2px solid var(--cyan);
+            border-radius: 15px;
+            width: 100%;
+            max-width: 900px;
+            max-height: 90vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .modal-header {
+            padding: 15px 20px;
+            background: var(--bg-tertiary);
+            border-bottom: 1px solid var(--cyan);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .modal-header h3 { color: var(--cyan); font-size: 1.1em; }
+
+        .modal-body { flex: 1; overflow: auto; padding: 20px; }
+
+        .editor-textarea {
+            width: 100%;
+            min-height: 400px;
+            background: var(--bg-primary);
+            border: 1px solid rgba(0,243,255,0.3);
+            border-radius: 8px;
+            padding: 15px;
+            color: var(--text-primary);
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+            line-height: 1.6;
+            resize: vertical;
+        }
+
+        .modal-footer {
+            padding: 15px 20px;
+            background: var(--bg-tertiary);
+            border-top: 1px solid var(--cyan);
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+        }
+
+        /* Input Area */
+        .input-area {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: rgba(13, 14, 18, 0.98);
+            backdrop-filter: blur(10px);
+            border-top: 2px solid var(--cyan);
+            padding: 15px 20px;
+            z-index: 100;
+        }
+
+        .input-wrapper {
+            max-width: 1000px;
+            margin: 0 auto;
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+
+        .input-field {
+            flex: 1;
+            background: var(--bg-secondary);
+            border: 2px solid rgba(0,243,255,0.3);
+            border-radius: 25px;
+            padding: 15px 25px;
+            color: var(--text-primary);
+            font-family: 'Courier New', monospace;
+            font-size: 0.95em;
+            outline: none;
+            transition: all 0.3s;
+        }
+
+        .input-field:focus {
+            border-color: var(--cyan);
+            box-shadow: 0 0 15px var(--cyan-glow);
+        }
+
+        .btn-icon {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            border: 2px solid var(--cyan);
+            background: var(--bg-secondary);
+            color: var(--cyan);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            flex-shrink: 0;
+        }
+
+        .btn-icon:hover {
+            background: var(--cyan);
+            color: var(--bg-primary);
+            box-shadow: 0 0 20px var(--cyan-glow);
+            transform: scale(1.05);
+        }
+
+        /* Sidebar */
+        .sidebar-toggle {
+            position: fixed;
+            top: 80px;
+            right: 20px;
+            z-index: 101;
+            width: 45px;
+            height: 45px;
+            border-radius: 50%;
+            border: 2px solid var(--cyan);
+            background: var(--bg-secondary);
+            color: var(--cyan);
+            cursor: pointer;
+            box-shadow: 0 0 15px var(--cyan-glow);
+            transition: all 0.3s;
+        }
+
+        .sidebar-toggle:hover { transform: scale(1.1); box-shadow: 0 0 25px var(--cyan); }
+
+        .sidebar {
+            position: fixed;
+            top: 0;
+            right: -350px;
+            width: 330px;
+            height: 100vh;
+            background: var(--bg-secondary);
+            border-left: 2px solid var(--cyan);
+            padding: 80px 20px 20px;
+            transition: right 0.3s;
+            z-index: 99;
+            overflow-y: auto;
+        }
+
+        .sidebar.open { right: 0; }
+        .sidebar h3 { color: var(--cyan); font-size: 1em; margin: 20px 0 15px; padding-bottom: 8px; border-bottom: 1px solid rgba(0,243,255,0.3); }
+        .sidebar label { display: block; font-size: 0.8em; color: var(--text-secondary); margin-bottom: 8px; margin-top: 15px; }
+        .sidebar select, .sidebar input {
+            width: 100%;
+            background: var(--bg-primary);
+            border: 1px solid rgba(0,243,255,0.3);
+            border-radius: 8px;
+            padding: 10px;
+            color: var(--text-primary);
+            font-family: 'Courier New', monospace;
+            font-size: 0.85em;
+        }
+
+        /* Buttons */
+        .action-btn {
+            padding: 10px 20px;
+            background: var(--bg-secondary);
+            border: 2px solid var(--cyan);
+            color: var(--cyan);
+            border-radius: 8px;
+            cursor: pointer;
+            font-family: 'Courier New', monospace;
+            font-size: 0.85em;
+            transition: all 0.3s;
+            margin: 5px;
+        }
+
+        .action-btn:hover {
+            background: var(--cyan);
+            color: var(--bg-primary);
+            box-shadow: 0 0 15px var(--cyan-glow);
+            transform: translateY(-2px);
+        }
+
+        .action-btn.secondary { border-color: var(--purple); color: var(--purple); }
+        .action-btn.secondary:hover { background: var(--purple); color: white; }
+
+        /* Spinner */
+        .spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(0,243,255,0.3);
+            border-top-color: var(--cyan);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .header-title { font-size: 1.2em; }
+            .message-content { max-width: 90%; }
+            .image-grid { grid-template-columns: 1fr; }
+            .sidebar { width: 100%; right: -100%; }
+            .password-container { padding: 25px; }
+            .password-title { font-size: 1.4em; }
+        }
+
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: var(--bg-primary); }
+        ::-webkit-scrollbar-thumb { background: var(--cyan); border-radius: 4px; }
+    </style>
+</head>
+<body>
+
+    <!-- Password Screen -->
+    <div id="passwordScreen">
+        <div class="password-container">
+            <div class="lock-icon">🔐</div>
+            <div class="password-title">GIBSON GW — CLASSIFIED</div>
+            <div class="password-subtitle">Autonomous AI Consensus Matrix<br>Authorization Required</div>
+            <input type="password" class="password-input" id="passwordInput" placeholder="Enter Access Code" autocomplete="off">
+            <button class="btn-enter" onclick="verifyPassword()">Enter System</button>
+            <div class="error-message" id="errorMsg">⚠️ Access Denied: Invalid credentials</div>
+        </div>
+    </div>
+
+    <!-- Main App -->
+    <div id="mainApp">
+        <header class="header">
+            <div>
+                <div class="header-title">⚡ GIBSON GW v5.0</div>
+                <span class="header-subtitle">Self-Evolving AI — Ultra-Fast Performance</span>
+            </div>
+            <div class="avatar">
+                <svg viewBox="0 0 100 100" width="50" height="50">
+                    <circle cx="50" cy="50" r="45" fill="#1a1c23" stroke="#00f3ff" stroke-width="2"/>
+                    <circle cx="35" cy="40" r="6" fill="#00f3ff"/>
+                    <circle cx="65" cy="40" r="6" fill="#00f3ff"/>
+                    <path d="M 30 60 Q 50 75 70 60" stroke="#00f3ff" stroke-width="3" fill="none"/>
+                </svg>
+            </div>
+        </header>
+
+        <div class="status-bar">
+            <div class="status-dot"></div>
+            <span id="statusText">GIBSON GW Online — EDITH Ready</span>
+        </div>
+
+        <button class="sidebar-toggle" onclick="toggleSidebar()">⚙️</button>
+
+        <div class="sidebar" id="sidebar">
+            <h3>🤖 AI CONFIGURATION</h3>
+            <label>Text Model</label>
+            <select id="textModel">
+                <option value="gpt-4o">GPT-4o (Fastest)</option>
+                <option value="claude-3-5-sonnet">Claude 3.5 Sonnet</option>
+                <option value="gemini-2.0-flash">Gemini 2.0 Flash</option>
+                <option value="deepseek-chat">DeepSeek V3</option>
+            </select>
+
+            <label>Image Model</label>
+            <select id="imageModel">
+                <option value="flux">Flux (Best Quality)</option>
+                <option value="stable-diffusion">Stable Diffusion XL</option>
+            </select>
+
+            <label>Max Pages</label>
+            <input type="number" id="maxPages" value="40" min="1" max="100">
+
+            <h3>📊 STATISTICS</h3>
+            <div style="font-size: 0.8em; color: var(--text-secondary); line-height: 2;">
+                Files: <span id="fileCount" style="color: var(--cyan)">0</span><br>
+                Images: <span id="imageCount" style="color: var(--cyan)">0</span><br>
+                Docs: <span id="docCount" style="color: var(--cyan)">0</span>
+            </div>
+
+            <button class="action-btn" onclick="clearAllData()" style="width: 100%; margin-top: 20px;">🗑️ Clear All</button>
+        </div>
+
+        <div class="main-content">
+            <div class="file-upload-area" id="uploadArea" onclick="document.getElementById('fileInput').click()">
+                <div style="font-size: 3em; margin-bottom: 10px;">📁</div>
+                <div style="color: var(--cyan); margin-bottom: 8px;">Upload Files</div>
+                <div style="font-size: 0.8em; color: var(--text-secondary);">PDF, DOCX, XLSX, TXT, Images</div>
+                <input type="file" id="fileInput" style="display: none" multiple onchange="handleFiles(event)">
+            </div>
+
+            <div class="file-list" id="fileList"></div>
+
+            <div class="chat-container" id="chatContainer">
+                <div class="message assistant">
+                    <div class="message-avatar">⚡</div>
+                    <div class="message-content">
+                        <strong>EDITH Online — Ultra-Fast Mode Active</strong><br><br>
+                        Capabilities:<br>
+                        🎨 Unlimited 4K Images<br>
+                        📝 100-Page Research Papers<br>
+                        💻 Full Web/Mobile Apps<br>
+                        📄 Document Editor (All Formats)<br><br>
+                        Ready for commands.
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="modal-overlay" id="editorModal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>📝 Editor: <span id="editorFileName">document</span></h3>
+                    <button class="btn-small" onclick="closeEditor()">✕</button>
+                </div>
+                <div class="modal-body">
+                    <textarea class="editor-textarea" id="editorContent"></textarea>
+                </div>
+                <div class="modal-footer">
+                    <button class="action-btn secondary" onclick="closeEditor()">Cancel</button>
+                    <button class="action-btn" onclick="saveDocument()">💾 Save</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="input-area">
+            <div class="input-wrapper">
+                <button class="btn-icon" onclick="toggleVoice()" id="voiceBtn" title="Voice">🎤</button>
+                <input type="text" class="input-field" id="inputField" placeholder="Command EDITH..." onkeypress="if(event.key==='Enter')sendMessage()">
+                <button class="btn-icon" onclick="sendMessage()" title="Send">➤</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Password Protection
+        const CORRECT_PASSWORD = '0740489555';
+        
+        function verifyPassword() {
+            const input = document.getElementById('passwordInput');
+            const errorMsg = document.getElementById('errorMsg');
+            
+            if (input.value === CORRECT_PASSWORD) {
+                // Success
+                document.getElementById('passwordScreen').style.animation = 'fadeOut 0.5s ease';
+                setTimeout(() => {
+                    document.getElementById('passwordScreen').style.display = 'none';
+                    document.getElementById('mainApp').style.display = 'block';
+                    initApp();
+                }, 500);
+            } else {
+                // Error
+                input.classList.add('error');
+                errorMsg.style.display = 'block';
+                setTimeout(() => {
+                    input.classList.remove('error');
+                    input.value = '';
+                    input.focus();
+                }, 2000);
+            }
+        }
+
+        // Allow Enter key on password input
+        document.getElementById('passwordInput')?.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') verifyPassword();
+        });
+
+        // Add fadeOut animation
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes fadeOut {
+                from { opacity: 1; }
+                to { opacity: 0; }
+            }
+        `;
+        document.head.appendChild(style);
+
+        // App State
+        const state = {
+            chatHistory: [],
+            uploadedFiles: [],
+            currentEditingFile: null,
+            imageCount: 0,
+            docCount: 0,
+            recognition: null,
+            isListening: false
+        };
+
+        function initApp() {
+            initSpeech();
+            loadState();
+            updateFileList();
+            updateStats();
+        }
+
+        function initSpeech() {
+            if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+                const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+                state.recognition = new SpeechRecognition();
+                state.recognition.continuous = true;
+                state.recognition.interimResults = true;
+
+                state.recognition.onresult = (e) => {
+                    let final = '';
+                    for (let i = e.resultIndex; i < e.results.length; i++) {
+                        if (e.results[i].isFinal) final += e.results[i][0].transcript;
+                    }
+                    if (final.toLowerCase().includes('edith')) {
+                        document.getElementById('inputField').value = final.replace(/edith/gi, '').trim();
+                        sendMessage();
+                    }
+                };
+            }
+        }
+
+        function toggleVoice() {
+            if (!state.recognition) { alert('Voice not supported'); return; }
+            if (state.isListening) {
+                state.recognition.stop();
+                document.getElementById('voiceBtn').style.background = '';
+            } else {
+                state.recognition.start();
+                document.getElementById('voiceBtn').style.background = 'var(--danger)';
+            }
+            state.isListening = !state.isListening;
+        }
+
+        async function handleFiles(e) {
+            const files = Array.from(e.target.files);
+            for (const file of files) {
+                state.uploadedFiles.push({ file, content: null, type: getFileType(file.name) });
+                await readFileContent(file, state.uploadedFiles.length - 1);
+            }
+            updateFileList();
+            updateStats();
+        }
+
+        function getFileType(name) {
+            const ext = name.split('.').pop().toLowerCase();
+            const types = { pdf: 'PDF', docx: 'Word', doc: 'Word', xlsx: 'Excel', xls: 'Excel', txt: 'Text', jpg: 'Image', jpeg: 'Image', png: 'Image', gif: 'Image' };
+            return types[ext] || 'Unknown';
+        }
+
+        async function readFileContent(file, index) {
+            const ext = file.name.split('.').pop().toLowerCase();
+            try {
+                if (['txt', 'json', 'xml', 'csv'].includes(ext)) {
+                    state.uploadedFiles[index].content = await file.text();
+                } else if (ext === 'pdf') {
+                    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+                    const pdf = await pdfjsLib.getDocument(await file.arrayBuffer()).promise;
+                    let text = '';
+                    for (let i = 1; i <= pdf.numPages; i++) {
+                        const content = await (await pdf.getPage(i)).getTextContent();
+                        text += content.items.map(item => item.str).join(' ') + '\n';
+                    }
+                    state.uploadedFiles[index].content = text;
+                } else if (ext === 'docx') {
+                    state.uploadedFiles[index].content = (await mammoth.extractRawText({ arrayBuffer: await file.arrayBuffer() })).value;
+                } else if (ext === 'xlsx') {
+                    const wb = XLSX.read(await file.arrayBuffer(), { type: 'array' });
+                    state.uploadedFiles[index].content = wb.SheetNames.map(name => `=== ${name} ===\n${XLSX.utils.sheet_to_txt(wb.Sheets[name])}`).join('\n');
+                } else if (['jpg', 'jpeg', 'png'].includes(ext)) {
+                    state.uploadedFiles[index].content = (await Tesseract.recognize(file, 'eng')).data.text;
+                }
+            } catch (err) {
+                console.error('File read error:', err);
+            }
+        }
+
+        function updateFileList() {
+            const list = document.getElementById('fileList');
+            document.getElementById('fileCount').textContent = state.uploadedFiles.length;
+            
+            if (state.uploadedFiles.length === 0) {
+                list.innerHTML = '';
+                return;
+            }
+
+            let html = '<h3 style="color:var(--cyan);margin:20px 0 15px;">📎 Files</h3>';
+            state.uploadedFiles.forEach((item, i) => {
+                html += `
+                    <div class="file-item">
+                        <div class="info">
+                            <div class="name">${item.file.name}</div>
+                            <div class="size">${item.type} • ${(item.file.size/1024).toFixed(1)} KB</div>
+                        </div>
+                        <div class="actions">
+                            <button class="btn-small edit" onclick="editDoc(${i})">✏️ Edit</button>
+                            <button class="btn-small download" onclick="downloadFile(${i})">💾</button>
+                            <button class="btn-small" onclick="removeFile(${i})" style="border-color:var(--danger);color:var(--danger)">🗑️</button>
+                        </div>
+                    </div>
+                `;
+            });
+            list.innerHTML = html;
+        }
+
+        function editDoc(i) {
+            state.currentEditingFile = { index: i, name: state.uploadedFiles[i].file.name };
+            document.getElementById('editorFileName').textContent = state.uploadedFiles[i].file.name;
+            document.getElementById('editorContent').value = state.uploadedFiles[i].content || '';
+            document.getElementById('editorModal').classList.add('active');
+        }
+
+        function closeEditor() {
+            document.getElementById('editorModal').classList.remove('active');
+            state.currentEditingFile = null;
+        }
+
+        async function saveDocument() {
+            if (!state.currentEditingFile) return;
+            const content = document.getElementById('editorContent').value;
+            const { index } = state.currentEditingFile;
+            state.uploadedFiles[index].content = content;
+            
+            const ext = state.uploadedFiles[index].file.name.split('.').pop().toLowerCase();
+            let blob, filename;
+            
+            if (ext === 'docx') {
+                const { Document, Packer, Paragraph, TextRun } = docx;
+                const doc = new Document({ sections: [{ children: content.split('\n').map(line => new Paragraph({ children: [new TextRun({ text: line, font: "Calibri", size: 24 })] }))] }] });
+                blob = await Packer.toBlob(doc);
+                filename = state.uploadedFiles[index].file.name;
+            } else {
+                blob = new Blob([content], { type: 'text/plain' });
+                filename = state.uploadedFiles[index].file.name;
+            }
+            
+            saveAs(blob, filename);
+            state.docCount++;
+            updateStats();
+            closeEditor();
+        }
+
+        function downloadFile(i) {
+            const url = URL.createObjectURL(state.uploadedFiles[i].file);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = state.uploadedFiles[i].file.name;
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        function removeFile(i) {
+            if (confirm('Remove file?')) {
+                state.uploadedFiles.splice(i, 1);
+                updateFileList();
+            }
+        }
+
+        async function sendMessage() {
+            const input = document.getElementById('inputField');
+            const text = input.value.trim();
+            if (!text) return;
+
+            input.value = '';
+            addMessage('user', text);
+            showTyping();
+
+            try {
+                const lower = text.toLowerCase();
+                if (lower.includes('image') || lower.includes('picture') || lower.includes('generate')) {
+                    await generateImage(text);
+                } else if (lower.includes('research paper') || lower.includes('thesis')) {
+                    await generatePaper(text);
+                } else if (lower.includes('app') || lower.includes('website')) {
+                    await generateApp(text);
+                } else {
+                    await chatAI(text);
+                }
+            } catch (err) {
+                removeTyping();
+                addMessage('assistant', `❌ Error: ${err.message}`);
+            }
+        }
+
+        async function chatAI(prompt) {
+            const model = document.getElementById('textModel').value;
+            let context = prompt;
+            
+            if (state.uploadedFiles.length > 0) {
+                context += '\n\n[Files: ' + state.uploadedFiles.map(f => f.file.name).join(', ') + ']';
+                state.uploadedFiles.forEach(f => { if (f.content) context += `\n\n--- ${f.file.name} ---\n${f.content.substring(0, 2000)}`; });
+            }
+
+            try {
+                const response = await puter.ai.chat(context, { model });
+                removeTyping();
+                const content = response.message?.content || response.text || String(response);
+                addMessage('assistant', formatContent(content));
+                state.chatHistory.push({ role: 'user', content: prompt }, { role: 'assistant', content });
+                localStorage.setItem('gibson_v5', JSON.stringify(state.chatHistory.slice(-50)));
+            } catch (err) {
+                removeTyping();
+                addMessage('assistant', `❌ AI Error: ${err.message}`);
+            }
+        }
+
+        async function generateImage(prompt) {
+            const model = document.getElementById('imageModel').value;
+            const cleanPrompt = prompt.replace(/generate|create|image|picture|4k/gi, '').trim() || 'cyberpunk city';
+            
+            updateStatus('🎨 Generating 4K image...');
+            
+            try {
+                const result = await puter.ai.txt2img(cleanPrompt, { width: 3840, height: 2160, model });
+                removeTyping();
+                state.imageCount++;
+                updateStats();
+                updateStatus('Ready');
+                
+                const imageUrl = typeof result === 'string' ? result : result.url || result.data || result.toString();
+                
+                addMessage('assistant', `
+                    <div>
+                        <strong>✅ 4K Image Generated</strong>
+                        <div class="image-grid">
+                            <div class="image-card">
+                                <img src="${imageUrl}" alt="4K Image">
+                                <div class="info">
+                                    <div class="label">Resolution:</div>
+                                    <div style="color:var(--cyan)">3840 × 2160</div>
+                                    <div class="label">Model:</div>
+                                    <div style="color:var(--cyan)">${model}</div>
+                                </div>
+                            </div>
+                        </div>
+                        <button class="action-btn" onclick="downloadImg('${imageUrl}', 'gibson_4k_${Date.now()}.png')">📥 Download</button>
+                    </div>
+                `);
+            } catch (err) {
+                removeTyping();
+                updateStatus('Ready');
+                addMessage('assistant', `❌ Image Error: ${err.message}`);
+            }
+        }
+
+        function downloadImg(url, filename) {
+            fetch(url).then(r => r.blob()).then(blob => saveAs(blob, filename));
+        }
+
+        async function generatePaper(prompt) {
+            const maxPages = parseInt(document.getElementById('maxPages').value) || 40;
+            updateStatus(`📝 Writing ${maxPages}-page paper...`);
+            
+            try {
+                const sections = ['Abstract', 'Introduction', 'Literature Review', 'Methodology', 'Results', 'Discussion', 'Conclusion', 'References'];
+                let paper = `# RESEARCH PAPER\n\n**Pages:** ${maxPages} | **Date:** ${new Date().toLocaleString()}\n\n**Topic:** ${prompt}\n\n---\n\n`;
+                
+                for (const section of sections) {
+                    const response = await puter.ai.chat(`Write ${section} for research paper about: ${prompt}. Use APA citations. Include references.`, { model: document.getElementById('textModel').value });
+                    paper += `\n## ${section.toUpperCase()}\n\n${response.message?.content || response.text}\n\n`;
+                    updateStatus(`Writing: ${section}...`);
+                }
+                
+                removeTyping();
+                updateStatus('Ready');
+                
+                const b64 = btoa(paper);
+                addMessage('assistant', `
+                    <div>
+                        <strong>✅ Paper Complete</strong>
+                        <div style="max-height:400px;overflow:auto;background:var(--bg-primary);padding:15px;border-radius:8px;margin:10px 0;">${formatContent(paper)}</div>
+                        <button class="action-btn" onclick="downloadPaper('${b64}', 'paper.docx')">📄 Download DOCX</button>
+                    </div>
+                `);
+            } catch (err) {
+                removeTyping();
+                updateStatus('Ready');
+                addMessage('assistant', `❌ Paper Error: ${err.message}`);
+            }
+        }
+
+        function downloadPaper(b64, filename) {
+            const content = atob(b64);
+            const { Document, Packer, Paragraph, TextRun } = docx;
+            const doc = new Document({ sections: [{ children: content.split('\n').map(line => new Paragraph({ children: [new TextRun({ text: line, font: "Calibri", size: 24 })] }))] }] });
+            Packer.toBlob(doc).then(blob => saveAs(blob, filename));
+        }
+
+        async function generateApp(prompt) {
+            updateStatus('💻 Creating app...');
+            
+            try {
+                const response = await puter.ai.chat(`Create complete working app: ${prompt}. Provide ALL code. No placeholders.`, { model: document.getElementById('textModel').value });
+                removeTyping();
+                updateStatus('Ready');
+                
+                const code = response.message?.content || response.text;
+                const blocks = extractCode(code);
+                
+                let html = '<div><strong>✅ App Generated</strong><br><br>';
+                blocks.forEach((block, i) => {
+                    const ext = block.lang === 'javascript' ? 'js' : block.lang === 'python' ? 'py' : block.lang === 'html' ? 'html' : 'txt';
+                    const b64 = btoa(block.code);
+                    html += `<div style="margin:15px 0;"><pre style="background:#0a0b0f;padding:15px;border-radius:8px;overflow:auto;"><code>${escapeHtml(block.code)}</code></pre><button class="action-btn" onclick="downloadCode('${b64}', 'file_${i}.${ext}')">📥 Download</button></div>`;
+                });
+                html += '</div>';
+                
+                addMessage('assistant', html);
+            } catch (err) {
+                removeTyping();
+                updateStatus('Ready');
+                addMessage('assistant', `❌ App Error: ${err.message}`);
+            }
+        }
+
+        function extractCode(text) {
+            const blocks = [];
+            const regex = /```(\w+)?\n([\s\S]*?)```/g;
+            let match;
+            while ((match = regex.exec(text)) !== null) {
+                blocks.push({ lang: match[1] || 'text', code: match[2].trim() });
+            }
+            return blocks.length ? blocks : [{ lang: 'text', code: text }];
+        }
+
+        function downloadCode(b64, filename) {
+            saveAs(new Blob([atob(b64)], { type: 'text/plain' }), filename);
+        }
+
+        function addMessage(role, content) {
+            const chat = document.getElementById('chatContainer');
+            const msg = document.createElement('div');
+            msg.className = `message ${role}`;
+            msg.innerHTML = `<div class="message-avatar">${role === 'user' ? '👤' : '⚡'}</div><div class="message-content">${content}</div>`;
+            chat.appendChild(msg);
+            msg.scrollIntoView({ behavior: 'smooth' });
+        }
+
+        function showTyping() {
+            const chat = document.getElementById('chatContainer');
+            const typing = document.createElement('div');
+            typing.className = 'message assistant';
+            typing.id = 'typing';
+            typing.innerHTML = `<div class="message-avatar">⚡</div><div class="message-content"><span class="spinner"></span> Processing...</div>`;
+            chat.appendChild(typing);
+        }
+
+        function removeTyping() {
+            const t = document.getElementById('typing');
+            if (t) t.remove();
+        }
+
+        function updateStatus(text) {
+            document.getElementById('statusText').textContent = text;
+        }
+
+        function formatContent(text) {
+            return marked.parse(text || '');
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function toggleSidebar() {
+            document.getElementById('sidebar').classList.toggle('open');
+        }
+
+        function updateStats() {
+            document.getElementById('imageCount').textContent = state.imageCount;
+            document.getElementById('docCount').textContent = state.docCount;
+        }
+
+        function clearAllData() {
+            if (confirm('Clear all data?')) {
+                state.chatHistory = [];
+                state.uploadedFiles = [];
+                state.imageCount = 0;
+                state.docCount = 0;
+                localStorage.removeItem('gibson_v5');
+                updateFileList();
+                updateStats();
+                document.getElementById('chatContainer').innerHTML = '<div class="message assistant"><div class="message-avatar">⚡</div><div class="message-content">Cleared. Ready.</div></div>';
+            }
+        }
+
+        function loadState() {
+            const saved = localStorage.getItem('gibson_v5');
+            if (saved) {
+                try { state.chatHistory = JSON.parse(saved); } catch(e) {}
+            }
+        }
+
+        if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(()=>{});
+        
+        document.addEventListener('keydown', (e) => {
+            if ((e.ctrlKey || e.metaKey) && e.key === 'm') { e.preventDefault(); toggleVoice(); }
+            if (e.key === 'Escape') { closeEditor(); if (state.isListening) toggleVoice(); }
+        });
+    </script>
+</body>
+  </html>
