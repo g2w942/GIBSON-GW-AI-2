@@ -1,0 +1,24 @@
+{
+    "name": "GIBSON GW — EDITH v5.0 FINAL",
+    "short_name": "GIBSON GW",
+    "description": "Classified AI System - Password Protected",
+    "start_url": "/index.html",
+    "display": "standalone",
+    "background_color": "#0d0e12",
+    "theme_color": "#00f3ff",
+    "orientation": "any",
+    "icons": [
+        {
+            "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' fill='%230d0e12'/><text y='.9em' x='10' font-size='80'>⚡</text></svg>",
+            "sizes": "192x192",
+            "type": "image/svg+xml",
+            "purpose": "any maskable"
+        },
+        {
+            "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' fill='%230d0e12'/><text y='.9em' x='10' font-size='80'>⚡</text></svg>",
+            "sizes": "512x512",
+            "type": "image/svg+xml",
+            "purpose": "any maskable"
+        }
+    ]
+}
