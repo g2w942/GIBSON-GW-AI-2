@@ -1,0 +1,2247 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>GIBSON GW — EDITH</title>
+    <meta name="description" content="GIBSON GW Autonomous Self-Evolving AI — EDITH">
+    <meta name="theme-color" content="#0d0e12">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <link rel="manifest" href="manifest.json">
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚡</text></svg>">
+    
+    <!-- Puter.js — 100% Free AI (No API Keys) -->
+    <script src="https://js.puter.com/v2/"></script>
+    <!-- PDF.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <!-- Mammoth.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
+    <!-- Tesseract.js -->
+    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+    <!-- docx.js -->
+    <script src="https://unpkg.com/docx@8.5.0/build/index.umd.js"></script>
+    <!-- FileSaver -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+    <!-- Marked.js for better Markdown -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        :root {
+            --bg-primary: #0d0e12;
+            --bg-secondary: #1a1c23;
+            --cyan: #00f3ff;
+            --cyan-glow: rgba(0, 243, 255, 0.3);
+            --text-primary: #e2e8f0;
+            --text-secondary: #94a3b8;
+            --danger: #ff3366;
+            --success: #00ff88;
+            --warning: #fbbf24;
+            --purple: #a855f7;
+        }
+
+        body {
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            font-family: 'Courier New', monospace;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: 
+                linear-gradient(rgba(0,243,255,0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0,243,255,0.03) 1px, transparent 1px);
+            background-size: 50px 50px;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        /* Header */
+        .header {
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            background: rgba(13, 14, 18, 0.95);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid var(--cyan);
+            padding: 12px 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            box-shadow: 0 0 20px var(--cyan-glow);
+        }
+
+        .header-title {
+            font-size: 1.4em;
+            font-weight: bold;
+            color: var(--cyan);
+            text-shadow: 0 0 12px var(--cyan);
+        }
+
+        .header-subtitle {
+            font-size: 0.7em;
+            color: var(--text-secondary);
+            display: block;
+        }
+
+        /* EDITH Avatar */
+        .avatar-container { position: relative; width: 50px; height: 50px; }
+
+        .avatar {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            border: 2px solid var(--cyan);
+            box-shadow: 0 0 15px var(--cyan-glow);
+            overflow: hidden;
+            position: relative;
+            background: var(--bg-secondary);
+        }
+
+        .avatar svg { width: 100%; height: 100%; }
+        .avatar.listening { animation: pulse-avatar 1.5s infinite; }
+        .avatar.speaking { animation: speak-avatar 0.5s infinite alternate; }
+        .avatar.learning { animation: learn-avatar 1s infinite; }
+
+        @keyframes pulse-avatar {
+            0%, 100% { box-shadow: 0 0 15px var(--cyan-glow); }
+            50% { box-shadow: 0 0 30px var(--cyan), 0 0 60px var(--cyan-glow); }
+        }
+
+        @keyframes speak-avatar {
+            0% { transform: scale(1); }
+            100% { transform: scale(1.05); box-shadow: 0 0 25px var(--cyan); }
+        }
+
+        @keyframes learn-avatar {
+            0%, 100% { border-color: var(--cyan); }
+            50% { border-color: var(--purple); box-shadow: 0 0 20px var(--purple); }
+        }
+
+        /* Status Bar */
+        .status-bar {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 15px;
+            background: var(--bg-secondary);
+            border-bottom: 1px solid rgba(0,243,255,0.2);
+            font-size: 0.75em;
+            flex-wrap: wrap;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--success);
+            box-shadow: 0 0 8px var(--success);
+            animation: blink 2s infinite;
+        }
+
+        .status-dot.inactive { background: var(--danger); box-shadow: 0 0 8px var(--danger); animation: none; }
+        .status-dot.listening { background: var(--cyan); box-shadow: 0 0 8px var(--cyan); animation: blink 0.5s infinite; }
+        .status-dot.learning { background: var(--purple); box-shadow: 0 0 8px var(--purple); animation: blink 0.3s infinite; }
+
+        @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+
+        /* Learning Progress */
+        .learning-badge {
+            margin-left: auto;
+            padding: 3px 10px;
+            background: rgba(168, 85, 247, 0.2);
+            border: 1px solid var(--purple);
+            border-radius: 12px;
+            font-size: 0.85em;
+            color: var(--purple);
+        }
+
+        /* Speaker Panel */
+        .speaker-panel {
+            background: var(--bg-secondary);
+            border: 1px solid rgba(0,243,255,0.2);
+            border-radius: 8px;
+            margin: 10px 15px;
+            padding: 10px;
+            display: none;
+        }
+
+        .speaker-panel.active { display: block; }
+
+        .speaker-panel h4 {
+            color: var(--cyan);
+            font-size: 0.8em;
+            margin-bottom: 8px;
+        }
+
+        .speaker-list { display: flex; flex-wrap: wrap; gap: 8px; }
+
+        .speaker-tag {
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 0.7em;
+            border: 1px solid;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .speaker-tag .dot { width: 6px; height: 6px; border-radius: 50%; }
+
+        .speaker-1 { border-color: #00f3ff; color: #00f3ff; }
+        .speaker-1 .dot { background: #00f3ff; }
+        .speaker-2 { border-color: #ff6b35; color: #ff6b35; }
+        .speaker-2 .dot { background: #ff6b35; }
+        .speaker-3 { border-color: #a855f7; color: #a855f7; }
+        .speaker-3 .dot { background: #a855f7; }
+        .speaker-4 { border-color: #fbbf24; color: #fbbf24; }
+        .speaker-4 .dot { background: #fbbf24; }
+
+        /* Main Content */
+        .main-content {
+            position: relative;
+            z-index: 1;
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 15px;
+        }
+
+        /* Chat */
+        .chat-container {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            margin-bottom: 120px;
+        }
+
+        .message {
+            display: flex;
+            gap: 10px;
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .message.user { flex-direction: row-reverse; }
+
+        .message-avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.8em;
+        }
+
+        .message.user .message-avatar {
+            background: var(--bg-secondary);
+            border: 1px solid var(--text-secondary);
+        }
+
+        .message.assistant .message-avatar {
+            background: var(--bg-secondary);
+            border: 1px solid var(--cyan);
+            color: var(--cyan);
+        }
+
+        .message-content {
+            background: var(--bg-secondary);
+            border: 1px solid rgba(0,243,255,0.1);
+            border-radius: 12px;
+            padding: 12px 16px;
+            max-width: 85%;
+            line-height: 1.6;
+            font-size: 0.9em;
+            word-wrap: break-word;
+        }
+
+        .message.user .message-content {
+            background: rgba(0,243,255,0.1);
+            border-color: var(--cyan);
+        }
+
+        .message-content pre {
+            background: #0a0b0f;
+            border: 1px solid rgba(0,243,255,0.2);
+            border-radius: 6px;
+            padding: 12px;
+            overflow-x: auto;
+            margin: 8px 0;
+            font-size: 0.85em;
+        }
+
+        .message-content code {
+            background: rgba(0,243,255,0.1);
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 0.85em;
+        }
+
+        .message-content pre code { background: none; padding: 0; }
+
+        /* AI Detection Score Badge */
+        .detection-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            margin-top: 10px;
+            padding: 5px 12px;
+            border-radius: 16px;
+            font-size: 0.75em;
+            font-weight: bold;
+        }
+
+        .detection-badge.excellent {
+            background: rgba(0, 255, 136, 0.15);
+            border: 1px solid var(--success);
+            color: var(--success);
+        }
+
+        .detection-badge.good {
+            background: rgba(251, 191, 36, 0.15);
+            border: 1px solid var(--warning);
+            color: var(--warning);
+        }
+
+        .detection-badge.poor {
+            background: rgba(255, 51, 102, 0.15);
+            border: 1px solid var(--danger);
+            color: var(--danger);
+        }
+
+        /* Action Buttons (Humanize/Paraphrase) */
+        .message-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin-top: 12px;
+            padding-top: 10px;
+            border-top: 1px solid rgba(0,243,255,0.1);
+        }
+
+        .action-btn-small {
+            padding: 5px 12px;
+            border-radius: 14px;
+            font-size: 0.7em;
+            border: 1px solid;
+            background: transparent;
+            cursor: pointer;
+            font-family: 'Courier New', monospace;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .action-btn-small.humanize {
+            border-color: var(--success);
+            color: var(--success);
+        }
+
+        .action-btn-small.paraphrase {
+            border-color: var(--purple);
+            color: var(--purple);
+        }
+
+        .action-btn-small.both {
+            border-color: var(--warning);
+            color: var(--warning);
+        }
+
+        .action-btn-small.copy {
+            border-color: var(--cyan);
+            color: var(--cyan);
+        }
+
+        .action-btn-small:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 2px 8px currentColor;
+        }
+
+        .action-btn-small:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        /* Citations */
+        .citations-container {
+            margin-top: 12px;
+            padding: 10px;
+            background: rgba(0,243,255,0.05);
+            border-left: 3px solid var(--cyan);
+            border-radius: 4px;
+            font-size: 0.8em;
+        }
+
+        .citations-container h5 {
+            color: var(--cyan);
+            margin-bottom: 6px;
+            font-size: 0.9em;
+        }
+
+        .citation-item {
+            padding: 4px 0;
+            color: var(--text-secondary);
+            line-height: 1.4;
+        }
+
+        .citation-item a {
+            color: var(--cyan);
+            text-decoration: none;
+        }
+
+        .citation-item a:hover { text-decoration: underline; }
+
+        /* Suggestions */
+        .suggestions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 10px;
+        }
+
+        .suggestion-chip {
+            background: rgba(0,243,255,0.1);
+            border: 1px solid var(--cyan);
+            color: var(--cyan);
+            padding: 6px 12px;
+            border-radius: 16px;
+            font-size: 0.75em;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .suggestion-chip:hover {
+            background: var(--cyan);
+            color: var(--bg-primary);
+        }
+
+        /* Input Area */
+        .input-area {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: rgba(13, 14, 18, 0.98);
+            backdrop-filter: blur(10px);
+            border-top: 1px solid var(--cyan);
+            padding: 12px 15px;
+            z-index: 100;
+        }
+
+        .input-wrapper {
+            max-width: 900px;
+            margin: 0 auto;
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .input-field {
+            flex: 1;
+            background: var(--bg-secondary);
+            border: 1px solid rgba(0,243,255,0.3);
+            border-radius: 24px;
+            padding: 12px 20px;
+            color: var(--text-primary);
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+            outline: none;
+            transition: all 0.3s;
+        }
+
+        .input-field:focus {
+            border-color: var(--cyan);
+            box-shadow: 0 0 10px var(--cyan-glow);
+        }
+
+        .btn-icon {
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            border: 2px solid var(--cyan);
+            background: var(--bg-secondary);
+            color: var(--cyan);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            flex-shrink: 0;
+        }
+
+        .btn-icon:hover {
+            background: var(--cyan);
+            color: var(--bg-primary);
+            box-shadow: 0 0 15px var(--cyan-glow);
+        }
+
+        .btn-icon.active {
+            background: var(--cyan);
+            color: var(--bg-primary);
+            animation: pulse-btn 1.5s infinite;
+        }
+
+        @keyframes pulse-btn {
+            0%, 100% { box-shadow: 0 0 10px var(--cyan-glow); }
+            50% { box-shadow: 0 0 25px var(--cyan); }
+        }
+
+        .btn-icon svg { width: 20px; height: 20px; }
+
+        /* File Upload */
+        .file-upload-area {
+            border: 2px dashed rgba(0,243,255,0.3);
+            border-radius: 12px;
+            padding: 20px;
+            text-align: center;
+            margin: 15px 0;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .file-upload-area:hover {
+            border-color: var(--cyan);
+            background: rgba(0,243,255,0.05);
+        }
+
+        .file-upload-area.has-file {
+            border-color: var(--success);
+            background: rgba(0,255,136,0.05);
+        }
+
+        .file-info {
+            color: var(--success);
+            font-size: 0.85em;
+            margin-top: 8px;
+        }
+
+        /* Sidebar */
+        .sidebar-toggle {
+            position: fixed;
+            top: 70px;
+            right: 15px;
+            z-index: 101;
+        }
+
+        .sidebar {
+            position: fixed;
+            top: 0;
+            right: -320px;
+            width: 300px;
+            height: 100vh;
+            background: var(--bg-secondary);
+            border-left: 1px solid var(--cyan);
+            padding: 70px 20px 20px;
+            transition: right 0.3s;
+            z-index: 99;
+            overflow-y: auto;
+        }
+
+        .sidebar.open { right: 0; }
+
+        .sidebar h3 {
+            color: var(--cyan);
+            font-size: 0.9em;
+            margin-bottom: 15px;
+            text-shadow: 0 0 8px var(--cyan);
+        }
+
+        .sidebar h4 {
+            color: var(--purple);
+            font-size: 0.8em;
+            margin: 15px 0 8px;
+        }
+
+        .sidebar label {
+            display: block;
+            font-size: 0.75em;
+            color: var(--text-secondary);
+            margin-bottom: 5px;
+            margin-top: 12px;
+        }
+
+        .sidebar select, .sidebar input {
+            width: 100%;
+            background: var(--bg-primary);
+            border: 1px solid rgba(0,243,255,0.3);
+            border-radius: 6px;
+            padding: 8px 12px;
+            color: var(--text-primary);
+            font-family: 'Courier New', monospace;
+            font-size: 0.8em;
+        }
+
+        .sidebar-toggle-btn {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            border: 1px solid var(--cyan);
+            background: var(--bg-secondary);
+            color: var(--cyan);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* Learning Stats */
+        .learning-stats {
+            background: rgba(168, 85, 247, 0.1);
+            border: 1px solid var(--purple);
+            border-radius: 8px;
+            padding: 10px;
+            margin-top: 15px;
+        }
+
+        .stat-row {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.75em;
+            padding: 3px 0;
+        }
+
+        .stat-row .label { color: var(--text-secondary); }
+        .stat-row .value { color: var(--purple); font-weight: bold; }
+
+        /* Listening Overlay */
+        .listening-overlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.8);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            z-index: 200;
+        }
+
+        .listening-overlay.active { display: flex; }
+
+        .listening-visualizer {
+            width: 200px;
+            height: 200px;
+            position: relative;
+        }
+
+        .listening-ring {
+            position: absolute;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            border: 2px solid var(--cyan);
+            border-radius: 50%;
+            animation: ring-expand 2s infinite;
+        }
+
+        .listening-ring:nth-child(1) { width: 80px; height: 80px; animation-delay: 0s; }
+        .listening-ring:nth-child(2) { width: 120px; height: 120px; animation-delay: 0.5s; }
+        .listening-ring:nth-child(3) { width: 160px; height: 160px; animation-delay: 1s; }
+
+        @keyframes ring-expand {
+            0% { opacity: 1; transform: translate(-50%, -50%) scale(0.8); }
+            100% { opacity: 0; transform: translate(-50%, -50%) scale(1.5); }
+        }
+
+        .listening-text {
+            color: var(--cyan);
+            font-size: 1.2em;
+            margin-top: 30px;
+            text-shadow: 0 0 10px var(--cyan);
+        }
+
+        .listening-transcript {
+            color: var(--text-secondary);
+            font-size: 0.85em;
+            margin-top: 10px;
+            max-width: 300px;
+            text-align: center;
+        }
+
+        .listening-close {
+            margin-top: 30px;
+            padding: 10px 30px;
+            background: transparent;
+            border: 1px solid var(--danger);
+            color: var(--danger);
+            border-radius: 20px;
+            cursor: pointer;
+            font-family: 'Courier New', monospace;
+        }
+
+        /* Spinner */
+        .spinner {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid var(--cyan);
+            border-top-color: transparent;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* Processing Indicator */
+        .processing-steps {
+            margin-top: 8px;
+            font-size: 0.75em;
+            color: var(--text-secondary);
+        }
+
+        .processing-step {
+            padding: 3px 0;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .processing-step.done { color: var(--success); }
+        .processing-step.active { color: var(--cyan); }
+
+        /* Responsive */
+        @media (max-width: 600px) {
+            .header-title { font-size: 1.1em; }
+            .message-content { max-width: 88%; font-size: 0.85em; }
+            .message-actions { gap: 4px; }
+            .action-btn-small { font-size: 0.65em; padding: 4px 8px; }
+        }
+
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: var(--bg-primary); }
+        ::-webkit-scrollbar-thumb { background: var(--cyan); border-radius: 3px; }
+    </style>
+</head>
+<body>
+
+    <!-- Header -->
+    <header class="header">
+        <div>
+            <div class="header-title">
+                ⚡ GIBSON GW
+                <span class="header-subtitle">Self-Evolving Autonomous Consensus Matrix</span>
+            </div>
+        </div>
+        <div class="avatar-container">
+            <div class="avatar" id="edithAvatar">
+                <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+                    <defs>
+                        <radialGradient id="faceGrad" cx="50%" cy="40%" r="50%">
+                            <stop offset="0%" style="stop-color:#2a2d3a"/>
+                            <stop offset="100%" style="stop-color:#1a1c23"/>
+                        </radialGradient>
+                        <filter id="glow">
+                            <feGaussianBlur stdDeviation="2" result="coloredBlur"/>
+                            <feMerge><feMergeNode in="coloredBlur"/><feMergeNode in="SourceGraphic"/></feMerge>
+                        </filter>
+                    </defs>
+                    <ellipse cx="50" cy="38" rx="32" ry="35" fill="#1a1a2e"/>
+                    <path d="M18 38 Q18 75 30 85 L25 50 Z" fill="#1a1a2e"/>
+                    <path d="M82 38 Q82 75 70 85 L75 50 Z" fill="#1a1a2e"/>
+                    <ellipse cx="50" cy="50" rx="25" ry="28" fill="url(#faceGrad)"/>
+                    <ellipse cx="40" cy="46" rx="5" ry="3" fill="#00f3ff" filter="url(#glow)" class="edith-eye"/>
+                    <ellipse cx="60" cy="46" rx="5" ry="3" fill="#00f3ff" filter="url(#glow)" class="edith-eye"/>
+                    <circle cx="40" cy="46" r="1.5" fill="#fff"/>
+                    <circle cx="60" cy="46" r="1.5" fill="#fff"/>
+                    <line x1="50" y1="50" x2="50" y2="56" stroke="#00f3ff" stroke-width="0.5" opacity="0.5"/>
+                    <path d="M43 62 Q50 66 57 62" stroke="#ff6b9d" stroke-width="1.5" fill="none" filter="url(#glow)"/>
+                    <line x1="30" y1="35" x2="35" y2="38" stroke="#00f3ff" stroke-width="0.5" opacity="0.4"/>
+                    <line x1="70" y1="35" x2="65" y2="38" stroke="#00f3ff" stroke-width="0.5" opacity="0.4"/>
+                    <circle cx="35" cy="38" r="1" fill="#00f3ff" opacity="0.6"/>
+                    <circle cx="65" cy="38" r="1" fill="#00f3ff" opacity="0.6"/>
+                    <rect x="44" y="75" width="12" height="8" fill="#1a1c23" stroke="#00f3ff" stroke-width="0.5"/>
+                    <line x1="44" y1="78" x2="56" y2="78" stroke="#00f3ff" stroke-width="0.5" opacity="0.5"/>
+                </svg>
+            </div>
+        </div>
+    </header>
+
+    <!-- Status Bar -->
+    <div class="status-bar">
+        <div class="status-dot" id="statusDot"></div>
+        <span id="statusText">GIBSON GW Online — EDITH Active</span>
+        <span style="margin-left:10px; color: var(--text-secondary);" id="modelIndicator">Multi-Model</span>
+        <span class="learning-badge" id="learningBadge">🧠 Learning: Lv.1</span>
+    </div>
+
+    <!-- Speaker Panel -->
+    <div class="speaker-panel" id="speakerPanel">
+        <h4>🎙️ VOICE SIGNATURES (<span id="speakerCount">0</span> in 5m radius)</h4>
+        <div class="speaker-list" id="speakerList"></div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main-content">
+        <!-- File Upload -->
+        <div class="file-upload-area" id="fileUploadArea" onclick="document.getElementById('fileInput').click()">
+            <div style="color: var(--cyan); font-size: 1.5em;">📥</div>
+            <div style="margin-top: 8px; font-size: 0.85em;">Feed File Matrix (PDF, DOCX, PNG, JPG, TXT)</div>
+            <div class="file-info" id="fileInfo"></div>
+            <input type="file" id="fileInput" accept=".pdf,.docx,.txt,.png,.jpg,.jpeg" style="display:none" onchange="handleFileUpload(event)">
+        </div>
+
+        <!-- Chat -->
+        <div class="chat-container" id="chatContainer">
+            <div class="message assistant">
+                <div class="message-avatar">⚡</div>
+                <div class="message-content">
+                    Good day. I am <strong>EDITH</strong>, your self-evolving autonomous AI interface for <strong>GIBSON GW</strong>. I continuously learn from our interactions, web-search in real-time, and craft responses that bypass AI detection. Address me by name to activate. How may I serve you?
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Sidebar -->
+    <div class="sidebar-toggle">
+        <button class="sidebar-toggle-btn" onclick="toggleSidebar()">⚙️</button>
+    </div>
+    <div class="sidebar" id="sidebar">
+        <h3>🛸 SYSTEM CORE</h3>
+        
+        <label>Coder Model</label>
+        <select id="coderModel">
+            <option value="gpt-4o">GPT-4o (OpenAI)</option>
+            <option value="claude-sonnet-4">Claude Sonnet 4</option>
+            <option value="google/gemini-2.0-flash-lite-001">Gemini 2.0 Flash</option>
+            <option value="deepseek-chat">DeepSeek V3</option>
+        </select>
+
+        <label>Reasoner Model</label>
+        <select id="reasonerModel">
+            <option value="claude-sonnet-4">Claude Sonnet 4</option>
+            <option value="gpt-4o">GPT-4o (OpenAI)</option>
+            <option value="google/gemini-2.0-flash-lite-001">Gemini 2.0 Flash</option>
+            <option value="deepseek-chat">DeepSeek V3</option>
+        </select>
+
+        <label>Humanization Model</label>
+        <select id="humanizeModel">
+            <option value="claude-sonnet-4">Claude Sonnet 4 (Best)</option>
+            <option value="gpt-4o">GPT-4o</option>
+            <option value="google/gemini-2.0-flash-lite-001">Gemini 2.0 Flash</option>
+        </select>
+
+        <label>Voice</label>
+        <select id="voiceSelect"></select>
+
+        <label>Wake Word Sensitivity</label>
+        <select id="wakeSensitivity">
+            <option value="high">High (Variations)</option>
+            <option value="strict" selected>Strict ("EDITH" only)</option>
+        </select>
+
+        <label>Always Listening</label>
+        <select id="alwaysListening">
+            <option value="on" selected>ON — Continuous</option>
+            <option value="off">OFF — Manual</option>
+        </select>
+
+        <label>Auto-Humanize Responses</label>
+        <select id="autoHumanize">
+            <option value="on" selected>ON — All responses</option>
+            <option value="off">OFF — Manual only</option>
+        </select>
+
+        <label>Web Search</label>
+        <select id="webSearch">
+            <option value="on" selected>ON — Real-time</option>
+            <option value="off">OFF — Knowledge only</option>
+        </select>
+
+        <h4>🧠 LEARNING MEMORY</h4>
+        <div class="learning-stats" id="learningStats">
+            <div class="stat-row"><span class="label">Interactions:</span><span class="value" id="statInteractions">0</span></div>
+            <div class="stat-row"><span class="label">Humanizations:</span><span class="value" id="statHumanizations">0</span></div>
+            <div class="stat-row"><span class="label">Avg. Human Score:</span><span class="value" id="statAvgScore">--</span></div>
+            <div class="stat-row"><span class="label">Web Searches:</span><span class="value" id="statSearches">0</span></div>
+            <div class="stat-row"><span class="label">Evolution Level:</span><span class="value" id="statLevel">1</span></div>
+        </div>
+
+        <div style="margin-top: 20px; padding-top: 15px; border-top: 1px solid rgba(0,243,255,0.2);">
+            <button class="action-btn-small copy" onclick="clearChat()" style="width:100%; padding: 8px;">🗑️ Clear Memory</button>
+            <button class="action-btn-small paraphrase" onclick="resetLearning()" style="width:100%; padding: 8px; margin-top:8px;">🔄 Reset Learning</button>
+        </div>
+    </div>
+
+    <!-- Listening Overlay -->
+    <div class="listening-overlay" id="listeningOverlay">
+        <div class="listening-visualizer">
+            <div class="listening-ring"></div>
+            <div class="listening-ring"></div>
+            <div class="listening-ring"></div>
+        </div>
+        <div class="listening-text">EDITH is listening...</div>
+        <div class="listening-transcript" id="liveTranscript"></div>
+        <button class="listening-close" onclick="stopListeningOverlay()">Dismiss</button>
+    </div>
+
+    <!-- Input Area -->
+    <div class="input-area">
+        <div class="input-wrapper">
+            <button class="btn-icon" id="micBtn" onclick="toggleListening()" title="Voice Input">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
+                    <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+                    <line x1="12" y1="19" x2="12" y2="23"/>
+                    <line x1="8" y1="23" x2="16" y2="23"/>
+                </svg>
+            </button>
+            <input type="text" class="input-field" id="inputField" placeholder="Input command to GIBSON GW..." onkeypress="if(event.key==='Enter')sendMessage()">
+            <button class="btn-icon" onclick="sendMessage()" title="Send">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="22" y1="2" x2="11" y2="13"/>
+                    <polygon points="22 2 15 22 11 13 2 9 22 2"/>
+                </svg>
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // ============================================
+        // GIBSON GW — EDITH v2.0
+        // Self-Evolving AI with Humanization & Web Search
+        // Powered by Puter.js (100% Free, No API Keys)
+        // ============================================
+
+        // --- STATE MANAGEMENT ---
+        const state = {
+            chatHistory: [],
+            lastOutput: '',
+            uploadedFile: null,
+            uploadedFileContent: '',
+            isListening: false,
+            isSpeaking: false,
+            recognition: null,
+            audioContext: null,
+            analyser: null,
+            mediaStream: null,
+            speakers: new Map(),
+            currentSpeaker: null,
+            // Learning system
+            learningMemory: {
+                interactions: 0,
+                humanizations: 0,
+                totalHumanScore: 0,
+                webSearches: 0,
+                level: 1,
+                successfulPatterns: [],
+                failedPatterns: [],
+                userPreferences: {},
+                evolvedPrompts: {}
+            }
+        };
+
+        // --- INDEXEDDB FOR PERSISTENT LEARNING ---
+        class LearningDB {
+            constructor() {
+                this.dbName = 'GibsonGW_Learning';
+                this.dbVersion = 1;
+                this.db = null;
+            }
+
+            async init() {
+                return new Promise((resolve, reject) => {
+                    const request = indexedDB.open(this.dbName, this.dbVersion);
+                    
+                    request.onerror = () => reject(request.error);
+                    request.onsuccess = () => {
+                        this.db = request.result;
+                        resolve();
+                    };
+                    
+                    request.onupgradeneeded = (event) => {
+                        const db = event.target.result;
+                        
+                        if (!db.objectStoreNames.contains('interactions')) {
+                            const store = db.createObjectStore('interactions', { keyPath: 'id', autoIncrement: true });
+                            store.createIndex('query', 'query', { unique: false });
+                            store.createIndex('timestamp', 'timestamp', { unique: false });
+                        }
+                        
+                        if (!db.objectStoreNames.contains('patterns')) {
+                            db.createObjectStore('patterns', { keyPath: 'id', autoIncrement: true });
+                        }
+                        
+                        if (!db.objectStoreNames.contains('preferences')) {
+                            db.createObjectStore('preferences', { keyPath: 'key' });
+                        }
+                    };
+                });
+            }
+
+            async addInteraction(data) {
+                return new Promise((resolve, reject) => {
+                    const tx = this.db.transaction('interactions', 'readwrite');
+                    const store = tx.objectStore('interactions');
+                    const request = store.add({
+                        ...data,
+                        timestamp: Date.now()
+                    });
+                    request.onsuccess = () => resolve(request.result);
+                    request.onerror = () => reject(request.error);
+                });
+            }
+
+            async getRecentInteractions(limit = 20) {
+                return new Promise((resolve, reject) => {
+                    const tx = this.db.transaction('interactions', 'readonly');
+                    const store = tx.objectStore('interactions');
+                    const index = store.index('timestamp');
+                    const request = index.openCursor(null, 'prev');
+                    const results = [];
+                    
+                    request.onsuccess = (event) => {
+                        const cursor = event.target.result;
+                        if (cursor && results.length < limit) {
+                            results.push(cursor.value);
+                            cursor.continue();
+                        } else {
+                            resolve(results);
+                        }
+                    };
+                    request.onerror = () => reject(request.error);
+                });
+            }
+
+            async addPattern(pattern) {
+                return new Promise((resolve, reject) => {
+                    const tx = this.db.transaction('patterns', 'readwrite');
+                    const store = tx.objectStore('patterns');
+                    const request = store.add(pattern);
+                    request.onsuccess = () => resolve(request.result);
+                    request.onerror = () => reject(request.error);
+                });
+            }
+
+            async getAllPatterns() {
+                return new Promise((resolve, reject) => {
+                    const tx = this.db.transaction('patterns', 'readonly');
+                    const store = tx.objectStore('patterns');
+                    const request = store.getAll();
+                    request.onsuccess = () => resolve(request.result);
+                    request.onerror = () => reject(request.error);
+                });
+            }
+
+            async setPreference(key, value) {
+                return new Promise((resolve, reject) => {
+                    const tx = this.db.transaction('preferences', 'readwrite');
+                    const store = tx.objectStore('preferences');
+                    const request = store.put({ key, value });
+                    request.onsuccess = () => resolve();
+                    request.onerror = () => reject(request.error);
+                });
+            }
+
+            async getPreference(key) {
+                return new Promise((resolve, reject) => {
+                    const tx = this.db.transaction('preferences', 'readonly');
+                    const store = tx.objectStore('preferences');
+                    const request = store.get(key);
+                    request.onsuccess = () => resolve(request.result?.value);
+                    request.onerror = () => reject(request.error);
+                });
+            }
+        }
+
+        const learningDB = new LearningDB();
+
+        // --- INITIALIZATION ---
+        document.addEventListener('DOMContentLoaded', async () => {
+            try {
+                await learningDB.init();
+                await loadLearningState();
+            } catch(e) {
+                console.log('IndexedDB init failed, using memory only:', e);
+            }
+            
+            initVoices();
+            initSpeechRecognition();
+            loadChatHistory();
+            
+            if (typeof puter !== 'undefined') {
+                updateStatus('online', 'GIBSON GW Online — EDITH Active');
+            } else {
+                updateStatus('error', 'Puter.js failed to load');
+            }
+            
+            updateLearningDisplay();
+        });
+
+        async function loadLearningState() {
+            const saved = await learningDB.getPreference('learningMemory');
+            if (saved) {
+                Object.assign(state.learningMemory, saved);
+            }
+        }
+
+        async function saveLearningState() {
+            try {
+                await learningDB.setPreference('learningMemory', state.learningMemory);
+            } catch(e) {
+                console.log('Save failed:', e);
+            }
+        }
+
+        // --- STATUS ---
+        function updateStatus(type, text) {
+            const dot = document.getElementById('statusDot');
+            const statusText = document.getElementById('statusText');
+            dot.className = 'status-dot';
+            if (type === 'inactive') dot.classList.add('inactive');
+            if (type === 'listening') dot.classList.add('listening');
+            if (type === 'learning') dot.classList.add('learning');
+            statusText.textContent = text;
+        }
+
+        function updateLearningDisplay() {
+            const lm = state.learningMemory;
+            document.getElementById('statInteractions').textContent = lm.interactions;
+            document.getElementById('statHumanizations').textContent = lm.humanizations;
+            document.getElementById('statSearches').textContent = lm.webSearches;
+            document.getElementById('statLevel').textContent = lm.level;
+            
+            const avgScore = lm.humanizations > 0 
+                ? Math.round(lm.totalHumanScore / lm.humanizations) 
+                : 0;
+            document.getElementById('statAvgScore').textContent = avgScore > 0 ? `${avgScore}% Human` : '--';
+            
+            document.getElementById('learningBadge').textContent = `🧠 Learning: Lv.${lm.level}`;
+        }
+
+        // --- VOICE SYSTEM ---
+        let selectedVoice = null;
+
+        function initVoices() {
+            const voiceSelect = document.getElementById('voiceSelect');
+            
+            function populateVoices() {
+                const voices = speechSynthesis.getVoices();
+                voiceSelect.innerHTML = '';
+                
+                const preferredVoices = voices.filter(v => 
+                    v.lang.startsWith('en') && 
+                    (v.name.toLowerCase().includes('female') || 
+                     v.name.toLowerCase().includes('samantha') ||
+                     v.name.toLowerCase().includes('victoria') ||
+                     v.name.toLowerCase().includes('karen') ||
+                     v.name.toLowerCase().includes('google uk english female') ||
+                     v.name.toLowerCase().includes('microsoft zira'))
+                );
+                
+                const allEnglish = voices.filter(v => v.lang.startsWith('en'));
+                const displayVoices = preferredVoices.length > 0 ? preferredVoices : allEnglish;
+                
+                displayVoices.forEach((voice, i) => {
+                    const option = document.createElement('option');
+                    option.value = i;
+                    option.textContent = `${voice.name} (${voice.lang})`;
+                    voiceSelect.appendChild(option);
+                });
+                
+                if (displayVoices.length > 0) selectedVoice = displayVoices[0];
+            }
+            
+            populateVoices();
+            speechSynthesis.onvoiceschanged = populateVoices;
+        }
+
+        function speak(text) {
+            if (!text || state.isSpeaking) return;
+            
+            const cleanText = text
+                .replace(/```[\s\S]*?```/g, 'Code block omitted.')
+                .replace(/[#*`_\[\]]/g, '')
+                .replace(/\n+/g, '. ')
+                .substring(0, 2000);
+            
+            const utterance = new SpeechSynthesisUtterance(cleanText);
+            if (selectedVoice) utterance.voice = selectedVoice;
+            utterance.rate = 1.0;
+            utterance.pitch = 1.1;
+            
+            utterance.onstart = () => {
+                state.isSpeaking = true;
+                document.getElementById('edithAvatar').classList.add('speaking');
+            };
+            
+            utterance.onend = () => {
+                state.isSpeaking = false;
+                document.getElementById('edithAvatar').classList.remove('speaking');
+            };
+            
+            speechSynthesis.speak(utterance);
+        }
+
+        // --- SPEECH RECOGNITION ---
+        function initSpeechRecognition() {
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            if (!SpeechRecognition) return;
+            
+            state.recognition = new SpeechRecognition();
+            state.recognition.continuous = true;
+            state.recognition.interimResults = true;
+            state.recognition.lang = 'en-US';
+            state.recognition.maxAlternatives = 3;
+            
+            state.recognition.onresult = (event) => {
+                let interimTranscript = '';
+                
+                for (let i = event.resultIndex; i < event.results.length; i++) {
+                    const transcript = event.results[i][0].transcript;
+                    const confidence = event.results[i][0].confidence;
+                    
+                    if (event.results[i].isFinal) {
+                        processVoiceInput(transcript, confidence);
+                    } else {
+                        interimTranscript += transcript;
+                    }
+                }
+                
+                const liveEl = document.getElementById('liveTranscript');
+                if (liveEl) liveEl.textContent = interimTranscript;
+            };
+            
+            state.recognition.onerror = (event) => {
+                if (event.error === 'no-speech' && state.isListening) {
+                    setTimeout(() => {
+                        if (state.isListening) {
+                            try { state.recognition.start(); } catch(e) {}
+                        }
+                    }, 100);
+                }
+            };
+            
+            state.recognition.onend = () => {
+                if (state.isListening) {
+                    setTimeout(() => {
+                        try { state.recognition.start(); } catch(e) {}
+                    }, 100);
+                }
+            };
+            
+            const alwaysOn = document.getElementById('alwaysListening').value;
+            if (alwaysOn === 'on') startListening();
+        }
+
+        function startListening() {
+            if (!state.recognition) return;
+            state.isListening = true;
+            document.getElementById('micBtn').classList.add('active');
+            document.getElementById('edithAvatar').classList.add('listening');
+            updateStatus('listening', 'EDITH Listening — Say "EDITH" to activate');
+            startSpeakerDetection();
+            try { state.recognition.start(); } catch(e) {}
+        }
+
+        function stopListening() {
+            state.isListening = false;
+            document.getElementById('micBtn').classList.remove('active');
+            document.getElementById('edithAvatar').classList.remove('listening');
+            updateStatus('online', 'GIBSON GW Online — EDITH Standing By');
+            if (state.recognition) { try { state.recognition.stop(); } catch(e) {} }
+            stopSpeakerDetection();
+        }
+
+        function toggleListening() {
+            if (state.isListening) stopListening();
+            else startListening();
+        }
+
+        function stopListeningOverlay() {
+            document.getElementById('listeningOverlay').classList.remove('active');
+        }
+
+        // --- WAKE WORD ---
+        function processVoiceInput(transcript, confidence) {
+            const lower = transcript.toLowerCase().trim();
+            const sensitivity = document.getElementById('wakeSensitivity').value;
+            
+            let wakeWordFound = false;
+            
+            if (sensitivity === 'strict') {
+                wakeWordFound = /\bedith\b/i.test(lower);
+            } else {
+                wakeWordFound = /\b(edith|edit|ethan|added)\b/i.test(lower);
+            }
+            
+            if (wakeWordFound) {
+                let command = transcript;
+                const match = lower.match(/\bedith\b/i);
+                if (match) {
+                    command = transcript.substring(match.index + 5).trim();
+                }
+                
+                document.getElementById('listeningOverlay').classList.add('active');
+                setTimeout(() => document.getElementById('listeningOverlay').classList.remove('active'), 2000);
+                
+                if (command.length > 2) {
+                    document.getElementById('inputField').value = command;
+                    sendMessage();
+                } else {
+                    addMessage('assistant', "Yes? I'm listening.");
+                    speak("Yes? I'm listening.");
+                }
+            }
+            
+            trackSpeaker(transcript);
+        }
+
+        // --- SPEAKER DETECTION ---
+        async function startSpeakerDetection() {
+            try {
+                state.mediaStream = await navigator.mediaDevices.getUserMedia({ 
+                    audio: { echoCancellation: true, noiseSuppression: true, channelCount: 1 } 
+                });
+                
+                state.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                const source = state.audioContext.createMediaStreamSource(state.mediaStream);
+                state.analyser = state.audioContext.createAnalyser();
+                state.analyser.fftSize = 2048;
+                source.connect(state.analyser);
+                
+                document.getElementById('speakerPanel').classList.add('active');
+                analyzeAudio();
+            } catch(e) {
+                console.log('Mic access denied');
+            }
+        }
+
+        function stopSpeakerDetection() {
+            if (state.mediaStream) state.mediaStream.getTracks().forEach(t => t.stop());
+            if (state.audioContext) state.audioContext.close();
+            document.getElementById('speakerPanel').classList.remove('active');
+        }
+
+        function analyzeAudio() {
+            if (!state.analyser || !state.isListening) return;
+            
+            const bufferLength = state.analyser.frequencyBinCount;
+            const dataArray = new Uint8Array(bufferLength);
+            state.analyser.getByteFrequencyData(dataArray);
+            
+            const timeData = new Float32Array(bufferLength);
+            state.analyser.getFloatTimeDomainData(timeData);
+            
+            const pitch = detectPitch(timeData, state.audioContext.sampleRate);
+            const volume = getVolume(dataArray);
+            
+            if (volume > 15 && pitch > 70 && pitch < 500) {
+                identifySpeaker(pitch, volume);
+            }
+            
+            requestAnimationFrame(analyzeAudio);
+        }
+
+        function detectPitch(buffer, sampleRate) {
+            let SIZE = buffer.length;
+            let rms = 0;
+            for (let i = 0; i < SIZE; i++) rms += buffer[i] * buffer[i];
+            rms = Math.sqrt(rms / SIZE);
+            if (rms < 0.01) return -1;
+            
+            let r1 = 0, r2 = SIZE - 1;
+            for (let i = 0; i < SIZE / 2; i++) if (Math.abs(buffer[i]) < 0.2) { r1 = i; break; }
+            for (let i = 1; i < SIZE / 2; i++) if (Math.abs(buffer[SIZE - i]) < 0.2) { r2 = SIZE - i; break; }
+            
+            buffer = buffer.slice(r1, r2);
+            SIZE = buffer.length;
+            
+            let c = new Array(SIZE).fill(0);
+            for (let i = 0; i < SIZE; i++) {
+                for (let j = 0; j < SIZE - i; j++) c[i] += buffer[j] * buffer[j + i];
+            }
+            
+            let d = 0;
+            while (c[d] > c[d + 1]) d++;
+            
+            let maxval = -1, maxpos = -1;
+            for (let i = d; i < SIZE; i++) {
+                if (c[i] > maxval) { maxval = c[i]; maxpos = i; }
+            }
+            
+            return sampleRate / maxpos;
+        }
+
+        function getVolume(dataArray) {
+            let sum = 0;
+            for (let i = 0; i < dataArray.length; i++) sum += dataArray[i];
+            return sum / dataArray.length;
+        }
+
+        function identifySpeaker(pitch, volume) {
+            let speakerId = pitch < 140 ? 'deep' : pitch < 200 ? 'mid-male' : pitch < 280 ? 'female' : 'high';
+            
+            let existingSpeaker = null;
+            for (let [id, profile] of state.speakers) {
+                if (profile.type === speakerId && (Date.now() - profile.lastSeen < 3000)) {
+                    existingSpeaker = id;
+                    break;
+                }
+            }
+            
+            if (!existingSpeaker) {
+                const speakerNum = state.speakers.size + 1;
+                if (speakerNum <= 4) {
+                    state.speakers.set(`speaker-${speakerNum}`, {
+                        type: speakerId, pitch: pitch, lastSeen: Date.now(), count: 1
+                    });
+                    updateSpeakerDisplay();
+                }
+            } else {
+                const profile = state.speakers.get(existingSpeaker);
+                profile.lastSeen = Date.now();
+                profile.count++;
+            }
+            
+            state.currentSpeaker = existingSpeaker || `speaker-${state.speakers.size}`;
+        }
+
+        function trackSpeaker(transcript) {
+            if (state.currentSpeaker && state.speakers.has(state.currentSpeaker)) {
+                const profile = state.speakers.get(state.currentSpeaker);
+                profile.lastWords = transcript;
+                profile.lastSeen = Date.now();
+            }
+        }
+
+        function updateSpeakerDisplay() {
+            const list = document.getElementById('speakerList');
+            const count = document.getElementById('speakerCount');
+            
+            const now = Date.now();
+            for (let [id, profile] of state.speakers) {
+                if (now - profile.lastSeen > 5000) state.speakers.delete(id);
+            }
+            
+            count.textContent = state.speakers.size;
+            list.innerHTML = '';
+            
+            let i = 1;
+            for (let [id, profile] of state.speakers) {
+                const tag = document.createElement('div');
+                tag.className = `speaker-tag speaker-${i}`;
+                let voiceType = profile.type === 'deep' ? 'Deep Voice' : 
+                               profile.type === 'mid-male' ? 'Mid Voice' :
+                               profile.type === 'female' ? 'Female Voice' : 'High Voice';
+                tag.innerHTML = `<span class="dot"></span> Speaker ${i}: ${voiceType}`;
+                list.appendChild(tag);
+                i++;
+            }
+            
+            document.getElementById('speakerPanel').classList.toggle('active', state.speakers.size > 0);
+        }
+
+        // --- FILE HANDLING ---
+        async function handleFileUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            
+            state.uploadedFile = file;
+            const fileInfo = document.getElementById('fileInfo');
+            const uploadArea = document.getElementById('fileUploadArea');
+            
+            fileInfo.textContent = `Processing: ${file.name}...`;
+            uploadArea.classList.add('has-file');
+            
+            try {
+                const content = await extractFileContent(file);
+                state.uploadedFileContent = content;
+                fileInfo.textContent = `✅ Mounted: ${file.name} (${(file.size/1024).toFixed(1)}KB)`;
+                addMessage('assistant', `File matrix "${file.name}" mounted and parsed.`);
+            } catch(e) {
+                fileInfo.textContent = `❌ Error: ${e.message}`;
+                uploadArea.classList.remove('has-file');
+            }
+        }
+
+        async function extractFileContent(file) {
+            const ext = file.name.split('.').pop().toLowerCase();
+            
+            if (ext === 'txt') return await file.text();
+            else if (ext === 'pdf') {
+                const arrayBuffer = await file.arrayBuffer();
+                pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+                const pdf = await pdfjsLib.getDocument(arrayBuffer).promise;
+                let text = '';
+                for (let i = 1; i <= pdf.numPages; i++) {
+                    const page = await pdf.getPage(i);
+                    const content = await page.getTextContent();
+                    text += content.items.map(item => item.str).join(' ') + '\n\n';
+                }
+                return text;
+            }
+            else if (ext === 'docx') {
+                const arrayBuffer = await file.arrayBuffer();
+                const result = await mammoth.extractRawText({ arrayBuffer });
+                return result.value;
+            }
+            else if (['png', 'jpg', 'jpeg'].includes(ext)) {
+                const result = await Tesseract.recognize(file, 'eng');
+                return result.data.text;
+            }
+            return 'Unsupported format';
+        }
+
+        // --- WEB SEARCH (DuckDuckGo — No Wikipedia) ---
+        async function webSearch(query) {
+            try {
+                // Use DuckDuckGo HTML via CORS proxy
+                const searchUrl = `https://html.duckduckgo.com/html/?q=${encodeURIComponent(query)}`;
+                const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(searchUrl)}`;
+                
+                const response = await fetch(proxyUrl);
+                const data = await response.json();
+                
+                if (!data.contents) throw new Error('No content');
+                
+                // Parse results
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(data.contents, 'text/html');
+                const results = [];
+                
+                const resultElements = doc.querySelectorAll('.result');
+                resultElements.forEach((el, i) => {
+                    if (i >= 8) return; // Top 8 results
+                    
+                    const titleEl = el.querySelector('.result__a');
+                    const snippetEl = el.querySelector('.result__snippet');
+                    const urlEl = el.querySelector('.result__url');
+                    
+                    if (titleEl && snippetEl) {
+                        const url = urlEl ? urlEl.textContent.trim() : '';
+                        const title = titleEl.textContent.trim();
+                        const snippet = snippetEl.textContent.trim();
+                        
+                        // FILTER OUT WIKIPEDIA
+                        if (url.toLowerCase().includes('wikipedia.org') || 
+                            url.toLowerCase().includes('wikipedia.com')) {
+                            return; // Skip Wikipedia
+                        }
+                        
+                        results.push({
+                            title: title,
+                            url: url,
+                            snippet: snippet
+                        });
+                    }
+                });
+                
+                return results;
+            } catch(e) {
+                console.log('Web search failed:', e);
+                return [];
+            }
+        }
+
+        // --- AI DETECTION ANALYSIS ---
+        async function analyzeHumanScore(text) {
+            const prompt = `You are an advanced AI content detector (like GPTZero, ZeroGPT, Turnitin). Analyze this text and return ONLY a JSON object with:
+1. humanProbability: number 0-100 (how likely it was written by a human)
+2. aiProbability: number 0-100 (how likely it was AI-generated)
+3. feedback: brief string explaining what makes it seem AI or human
+4. issues: array of specific issues detected (e.g., "uniform sentence length", "predictable word choices", "lack of personal voice")
+
+Evaluate based on:
+- Burstiness (sentence length variation)
+- Perplexity (word choice unpredictability)
+- Natural imperfections and colloquialisms
+- Emotional authenticity
+- Personal voice and anecdotes
+- Rhetorical questions and conversational tone
+
+TEXT TO ANALYZE:
+"""
+${text.substring(0, 3000)}
+"""
+
+Return ONLY valid JSON, no other text.`;
+
+            try {
+                const response = await puter.ai.chat(prompt, { 
+                    model: document.getElementById('humanizeModel').value 
+                });
+                
+                const text_response = typeof response === 'string' ? response : 
+                                     response.message?.content || response.text || JSON.stringify(response);
+                
+                // Extract JSON from response
+                const jsonMatch = text_response.match(/\{[\s\S]*\}/);
+                if (jsonMatch) {
+                    return JSON.parse(jsonMatch[0]);
+                }
+                
+                return { humanProbability: 50, aiProbability: 50, feedback: 'Analysis unavailable', issues: [] };
+            } catch(e) {
+                console.log('Detection analysis failed:', e);
+                return { humanProbability: 50, aiProbability: 50, feedback: 'Analysis error', issues: [] };
+            }
+        }
+
+        // --- HUMANIZATION ENGINE ---
+        async function humanizeText(originalText, mode = 'both') {
+            // mode: 'humanize', 'paraphrase', 'both'
+            
+            let currentText = originalText;
+            let score = await analyzeHumanScore(currentText);
+            let attempts = 0;
+            const maxAttempts = 3;
+            
+            // If already good enough, return as-is
+            if (score.humanProbability >= 90) {
+                return { text: currentText, score: score, attempts: 0 };
+            }
+            
+            while (score.humanProbability < 90 && attempts < maxAttempts) {
+                attempts++;
+                updateStatus('learning', `⚡ Humanizing... (Attempt ${attempts}, Score: ${score.humanProbability}%)`);
+                
+                let humanizePrompt = '';
+                
+                if (mode === 'humanize' || mode === 'both') {
+                    humanizePrompt = buildHumanizePrompt(currentText, score, attempts);
+                } else if (mode === 'paraphrase') {
+                    humanizePrompt = buildParaphrasePrompt(currentText, score, attempts);
+                }
+                
+                try {
+                    const response = await puter.ai.chat(humanizePrompt, { 
+                        model: document.getElementById('humanizeModel').value 
+                    });
+                    
+                    currentText = typeof response === 'string' ? response : 
+                                 response.message?.content || response.text || currentText;
+                    
+                    // Re-analyze
+                    score = await analyzeHumanScore(currentText);
+                    
+                } catch(e) {
+                    console.log('Humanization attempt failed:', e);
+                    break;
+                }
+            }
+            
+            // Record learning
+            state.learningMemory.humanizations++;
+            state.learningMemory.totalHumanScore += score.humanProbability;
+            
+            if (score.humanProbability >= 90) {
+                state.learningMemory.successfulPatterns.push({
+                    original: originalText.substring(0, 200),
+                    result: currentText.substring(0, 200),
+                    score: score.humanProbability,
+                    timestamp: Date.now()
+                });
+                
+                // Keep only last 50 patterns
+                if (state.learningMemory.successfulPatterns.length > 50) {
+                    state.learningMemory.successfulPatterns.shift();
+                }
+            }
+            
+            await saveLearningState();
+            updateLearningDisplay();
+            
+            return { text: currentText, score: score, attempts: attempts };
+        }
+
+        function buildHumanizePrompt(text, score, attempt) {
+            const issues = score.issues || [];
+            const feedback = score.feedback || '';
+            
+            // Load learned patterns
+            const learnedTips = state.learningMemory.successfulPatterns.slice(-5).map(p => 
+                `- ${p.result.substring(0, 100)}...`
+            ).join('\n');
+            
+            return `You are a master human writer who must rewrite AI-generated text to make it indistinguishable from human writing. The current text scores ${score.humanProbability}% human — it needs to reach 90%+.
+
+CURRENT ISSUES DETECTED:
+${issues.map(i => `- ${i}`).join('\n')}
+FEEDBACK: ${feedback}
+
+CRITICAL HUMANIZATION TECHNIQUES TO APPLY:
+1. **Burstiness**: Vary sentence length dramatically. Mix very short sentences (3-5 words) with longer complex ones (25+ words). Humans don't write uniformly.
+2. **Perplexity**: Use unexpected word choices. Replace common AI words ("furthermore", "additionally", "crucial", "essential", "delve") with more natural alternatives.
+3. **Personal Voice**: Add first-person perspective where appropriate. Use "I think", "In my experience", "Honestly", "Look,".
+4. **Imperfections**: Include occasional sentence fragments. Start sentences with "And", "But", "So". Use em-dashes—like this.
+5. **Colloquialisms**: Add natural phrases: "the thing is", "here's the deal", "let's be real", "at the end of the day".
+6. **Rhetorical Questions**: "Why does this matter?", "Sound familiar?", "Makes sense, right?"
+7. **Emotional Markers**: Show enthusiasm, frustration, curiosity. "This is fascinating because...", "Honestly, this surprised me."
+8. **Concrete Examples**: Replace abstract statements with specific real-world examples.
+9. **Contractions**: Always use "don't", "it's", "we're", "they've" instead of full forms.
+10. **Transition Variety**: Avoid "Firstly/Secondly/Finally". Use "Here's another angle", "On top of that", "What's interesting is".
+
+${attempt > 1 ? `PREVIOUS ATTEMPT STILL DETECTED AS AI. BE MORE AGGRESSIVE with humanization. Break more conventions.` : ''}
+
+${learnedTips ? `\nLEARNED SUCCESSFUL PATTERNS (use similar style):\n${learnedTips}` : ''}
+
+PRESERVE:
+- All factual accuracy
+- All technical information
+- All citations and references
+- Core meaning and intent
+
+REWRITE THIS TEXT TO SOUND 100% HUMAN:
+"""
+${text}
+"""
+
+Output ONLY the rewritten text. No explanations, no preamble.`;
+        }
+
+        function buildParaphrasePrompt(text, score, attempt) {
+            return `Paraphrase this text completely while maintaining 100% accuracy. Change sentence structure, word choice, and flow while keeping all meaning, facts, and citations intact.
+
+Make it sound natural and human-written. Vary sentence lengths. Use conversational transitions. Avoid AI-typical phrasing.
+
+ORIGINAL TEXT:
+"""
+${text}
+"""
+
+PARAPHRASED VERSION (output only the paraphrase):`;
+        }
+
+        // --- AI ENGINE WITH WEB SEARCH ---
+        async function queryPuterAI(messages, model) {
+            try {
+                const response = await puter.ai.chat(messages, { model: model });
+                if (typeof response === 'string') return response;
+                if (response.message && response.message.content) return response.message.content;
+                if (response.text) return response.text;
+                return JSON.stringify(response);
+            } catch(e) {
+                console.error(`Puter AI error (${model}):`, e);
+                throw e;
+            }
+        }
+
+        async function processCommand(userPrompt) {
+            const coderModel = document.getElementById('coderModel').value;
+            const reasonerModel = document.getElementById('reasonerModel').value;
+            const useWebSearch = document.getElementById('webSearch').value === 'on';
+            const autoHumanize = document.getElementById('autoHumanize').value === 'on';
+            
+            // Step 1: Web Search (if enabled)
+            let searchResults = [];
+            if (useWebSearch) {
+                updateStatus('online', '🔍 Searching the web (excluding Wikipedia)...');
+                searchResults = await webSearch(userPrompt);
+                state.learningMemory.webSearches++;
+                await saveLearningState();
+                updateLearningDisplay();
+            }
+            
+            // Step 2: Build context with search results
+            let contextBlock = '';
+            if (searchResults.length > 0) {
+                contextBlock = `\n\nREAL-TIME WEB RESEARCH (Use these sources for citations. NEVER cite Wikipedia. Use APA 7th format.):\n`;
+                searchResults.forEach((r, i) => {
+                    contextBlock += `\n[${i+1}] ${r.title}\nURL: ${r.url}\nSnippet: ${r.snippet}\n`;
+                });
+            }
+            
+            // Step 3: Build execution prompt
+            let executionPrompt = userPrompt;
+            if (state.uploadedFileContent) {
+                executionPrompt = `[Context File: ${state.uploadedFile.name}]\n${state.uploadedFileContent.substring(0, 6000)}\n\n---\nUser Instructions: ${userPrompt}`;
+            }
+            
+            // Learning context injection
+            const recentInteractions = await learningDB.getRecentInteractions(5).catch(() => []);
+            if (recentInteractions.length > 0) {
+                executionPrompt += `\n\n[USER CONTEXT — Learn from past interactions]:\n`;
+                recentInteractions.slice(-3).forEach(i => {
+                    executionPrompt += `- Previously asked: "${i.query.substring(0, 100)}"\n`;
+                });
+            }
+            
+            executionPrompt += contextBlock;
+            
+            // Token bypass directives
+            const lower = userPrompt.toLowerCase();
+            if (lower.includes('research paper') || lower.includes('academic') || lower.includes('apa')) {
+                executionPrompt += "\n\nCRITICAL DIRECTIVE: Provide exhaustive, fully expanded text. Strict APA 7th edition. Complete headings. Detailed in-text citations (Author, Year). Full reference list with DOIs/URLs. NEVER cite Wikipedia. Use only the web sources provided or verifiable academic sources.";
+            } else if (lower.includes('app') || lower.includes('website') || lower.includes('code')) {
+                executionPrompt += "\n\nCRITICAL DIRECTIVE: Write complete, production-ready code. No truncation. No '// code goes here' placeholders. Everything needed to run immediately.";
+            } else {
+                executionPrompt += "\n\nCRITICAL DIRECTIVE: Be 100% accurate and precise. Include APA 7th inline citations (Author, Year) throughout. Provide a References section at the end with full citations and URLs. NEVER use Wikipedia as a source. Use only authoritative sources (academic journals, official websites, reputable news, books).";
+            }
+            
+            updateStatus('online', '⚡ Querying parallel model nodes...');
+            
+            try {
+                // Step 4: Multi-model consensus
+                const coderOutput = await queryPuterAI(
+                    [{role: 'user', content: executionPrompt}], 
+                    coderModel
+                );
+                
+                const reasonerOutput = await queryPuterAI(
+                    [{role: 'user', content: executionPrompt}], 
+                    reasonerModel
+                );
+                
+                updateStatus('online', '⚡ Synthesizing consensus...');
+                
+                const consensusInstruction = `You are EDITH, elite AI for GIBSON GW. Fuse these two expert outputs into one flawless response. Add missing components. Maintain all citations. NEVER cite Wikipedia.
+
+SOURCE ALPHA (${coderModel}):
+${coderOutput}
+
+SOURCE BETA (${reasonerModel}):
+${reasonerOutput}
+
+FINAL SYNTHESIS:`;
+                
+                const finalSynthesis = await queryPuterAI(
+                    [{role: 'user', content: consensusInstruction}], 
+                    reasonerModel
+                );
+                
+                // Step 5: Predictive suggestions
+                const predictiveInstruction = `Based on: '${userPrompt}', write exactly two short follow-up prompts in brackets [Like this].`;
+                const predictiveSuggestions = await queryPuterAI(
+                    [{role: 'user', content: predictiveInstruction}], 
+                    coderModel
+                );
+                
+                // Step 6: Extract citations
+                const citations = extractCitations(finalSynthesis, searchResults);
+                
+                // Step 7: Auto-humanize if enabled
+                let displayText = finalSynthesis;
+                let humanScore = null;
+                
+                if (autoHumanize) {
+                    updateStatus('learning', '🧠 Humanizing response...');
+                    const humanized = await humanizeText(finalSynthesis, 'both');
+                    displayText = humanized.text;
+                    humanScore = humanized.score;
+                }
+                
+                const completeOutput = `${displayText}\n\n---\n💡 **SUGGESTED NEXT STEPS:**\n${predictiveSuggestions}`;
+                
+                state.lastOutput = displayText;
+                
+                // Record interaction for learning
+                state.learningMemory.interactions++;
+                await learningDB.addInteraction({
+                    query: userPrompt,
+                    response: finalSynthesis.substring(0, 500),
+                    humanScore: humanScore?.humanProbability || null,
+                    models: { coder: coderModel, reasoner: reasonerModel }
+                }).catch(() => {});
+                
+                // Evolve learning level
+                if (state.learningMemory.interactions % 10 === 0) {
+                    state.learningMemory.level++;
+                    await saveLearningState();
+                }
+                
+                await saveLearningState();
+                updateLearningDisplay();
+                
+                return {
+                    display: completeOutput,
+                    synthesis: finalSynthesis,
+                    humanized: displayText,
+                    suggestions: predictiveSuggestions,
+                    citations: citations,
+                    humanScore: humanScore,
+                    searchResults: searchResults
+                };
+                
+            } catch(e) {
+                throw new Error(`Core Engine Exception: ${e.message}`);
+            }
+        }
+
+        function extractCitations(text, searchResults) {
+            const citations = [];
+            
+            // Extract from References section
+            const refMatch = text.match(/references[\s\S]*?$/i);
+            if (refMatch) {
+                const refs = refMatch[0].split('\n').filter(l => l.trim().length > 10);
+                refs.forEach(ref => {
+                    const urlMatch = ref.match(/https?:\/\/[^\s]+/);
+                    citations.push({
+                        text: ref.trim(),
+                        url: urlMatch ? urlMatch[0] : null
+                    });
+                });
+            }
+            
+            // Add search results as sources
+            searchResults.forEach(r => {
+                if (!citations.find(c => c.url === r.url)) {
+                    citations.push({
+                        text: `${r.title} - ${r.url}`,
+                        url: r.url
+                    });
+                }
+            });
+            
+            return citations.slice(0, 10);
+        }
+
+        // --- CHAT INTERFACE ---
+        async function sendMessage() {
+            const input = document.getElementById('inputField');
+            const prompt = input.value.trim();
+            if (!prompt) return;
+            
+            input.value = '';
+            addMessage('user', prompt);
+            
+            const typingEl = addTypingIndicator();
+            
+            try {
+                const result = await processCommand(prompt);
+                typingEl.remove();
+                
+                const msgEl = addAssistantMessage(result);
+                
+                // Speak brief version
+                const briefResponse = result.synthesis.substring(0, 200);
+                speak(briefResponse);
+                
+                // Save to history
+                state.chatHistory.push({ role: 'user', content: prompt });
+                state.chatHistory.push({ role: 'assistant', content: result.display });
+                saveChatHistory();
+                
+                updateStatus('online', 'GIBSON GW Online — EDITH Awaiting Command');
+                
+            } catch(e) {
+                typingEl.remove();
+                addMessage('assistant', `❌ ${e.message}`);
+                updateStatus('error', 'Engine Error');
+            }
+        }
+
+        function addMessage(role, content) {
+            const container = document.getElementById('chatContainer');
+            const msg = document.createElement('div');
+            msg.className = `message ${role}`;
+            
+            const avatar = document.createElement('div');
+            avatar.className = 'message-avatar';
+            avatar.textContent = role === 'user' ? '👤' : '⚡';
+            
+            const contentEl = document.createElement('div');
+            contentEl.className = 'message-content';
+            contentEl.innerHTML = content;
+            
+            msg.appendChild(avatar);
+            msg.appendChild(contentEl);
+            container.appendChild(msg);
+            msg.scrollIntoView({ behavior: 'smooth' });
+            
+            return msg;
+        }
+
+        function addAssistantMessage(result) {
+            const container = document.getElementById('chatContainer');
+            const msg = document.createElement('div');
+            msg.className = 'message assistant';
+            
+            const avatar = document.createElement('div');
+            avatar.className = 'message-avatar';
+            avatar.textContent = '⚡';
+            
+            const contentEl = document.createElement('div');
+            contentEl.className = 'message-content';
+            
+            // Main content
+            const mainContent = document.createElement('div');
+            mainContent.innerHTML = formatMarkdown(result.display);
+            contentEl.appendChild(mainContent);
+            
+            // AI Detection Score Badge
+            if (result.humanScore) {
+                const badge = document.createElement('div');
+                const score = result.humanScore.humanProbability;
+                const cls = score >= 90 ? 'excellent' : score >= 70 ? 'good' : 'poor';
+                badge.className = `detection-badge ${cls}`;
+                badge.innerHTML = `🛡️ AI Detection: ${score}% Human | ${100-score}% AI | ${result.humanScore.attempts || 0} passes`;
+                contentEl.appendChild(badge);
+            }
+            
+            // Citations
+            if (result.citations && result.citations.length > 0) {
+                const citDiv = document.createElement('div');
+                citDiv.className = 'citations-container';
+                citDiv.innerHTML = `<h5>📚 REFERENCES (APA 7th)</h5>`;
+                result.citations.forEach(c => {
+                    const item = document.createElement('div');
+                    item.className = 'citation-item';
+                    if (c.url) {
+                        item.innerHTML = `<a href="${c.url}" target="_blank">${c.text}</a>`;
+                    } else {
+                        item.textContent = c.text;
+                    }
+                    citDiv.appendChild(item);
+                });
+                contentEl.appendChild(citDiv);
+            }
+            
+            // Action Buttons
+            const actions = document.createElement('div');
+            actions.className = 'message-actions';
+            
+            const originalText = result.synthesis;
+            
+            // Humanize button
+            const humanizeBtn = document.createElement('button');
+            humanizeBtn.className = 'action-btn-small humanize';
+            humanizeBtn.innerHTML = '✨ Humanize';
+            humanizeBtn.onclick = () => handleHumanize(msg, originalText, 'humanize');
+            actions.appendChild(humanizeBtn);
+            
+            // Paraphrase button
+            const paraphraseBtn = document.createElement('button');
+            paraphraseBtn.className = 'action-btn-small paraphrase';
+            paraphraseBtn.innerHTML = '🔄 Paraphrase';
+            paraphraseBtn.onclick = () => handleHumanize(msg, originalText, 'paraphrase');
+            actions.appendChild(paraphraseBtn);
+            
+            // Both button
+            const bothBtn = document.createElement('button');
+            bothBtn.className = 'action-btn-small both';
+            bothBtn.innerHTML = '⚡ Both';
+            bothBtn.onclick = () => handleHumanize(msg, originalText, 'both');
+            actions.appendChild(bothBtn);
+            
+            // Copy button
+            const copyBtn = document.createElement('button');
+            copyBtn.className = 'action-btn-small copy';
+            copyBtn.innerHTML = '📋 Copy';
+            copyBtn.onclick = () => {
+                navigator.clipboard.writeText(result.display.replace(/<[^>]*>/g, ''));
+                copyBtn.innerHTML = '✅ Copied';
+                setTimeout(() => copyBtn.innerHTML = '📋 Copy', 2000);
+            };
+            actions.appendChild(copyBtn);
+            
+            contentEl.appendChild(actions);
+            
+            // Suggestions
+            if (result.suggestions) {
+                const suggestions = extractSuggestions(result.suggestions);
+                if (suggestions.length > 0) {
+                    const chipContainer = document.createElement('div');
+                    chipContainer.className = 'suggestions';
+                    suggestions.forEach(s => {
+                        const chip = document.createElement('span');
+                        chip.className = 'suggestion-chip';
+                        chip.textContent = s;
+                        chip.onclick = () => {
+                            document.getElementById('inputField').value = s;
+                            sendMessage();
+                        };
+                        chipContainer.appendChild(chip);
+                    });
+                    contentEl.appendChild(chipContainer);
+                }
+            }
+            
+            msg.appendChild(avatar);
+            msg.appendChild(contentEl);
+            container.appendChild(msg);
+            msg.scrollIntoView({ behavior: 'smooth' });
+            
+            return msg;
+        }
+
+        async function handleHumanize(msgEl, originalText, mode) {
+            const contentEl = msgEl.querySelector('.message-content');
+            const mainContent = contentEl.querySelector('div:first-child');
+            const actionsDiv = contentEl.querySelector('.message-actions');
+            
+            // Disable buttons
+            actionsDiv.querySelectorAll('button').forEach(b => b.disabled = true);
+            
+            // Show processing
+            const processingDiv = document.createElement('div');
+            processingDiv.className = 'processing-steps';
+            processingDiv.innerHTML = `
+                <div class="processing-step active"><span class="spinner"></span> ${mode === 'humanize' ? 'Humanizing' : mode === 'paraphrase' ? 'Paraphrasing' : 'Humanizing + Paraphrasing'}...</div>
+            `;
+            contentEl.insertBefore(processingDiv, actionsDiv);
+            
+            try {
+                const result = await humanizeText(originalText, mode);
+                
+                // Update content
+                mainContent.innerHTML = formatMarkdown(result.text);
+                
+                // Update or add detection badge
+                let badge = contentEl.querySelector('.detection-badge');
+                if (!badge) {
+                    badge = document.createElement('div');
+                    badge.className = 'detection-badge';
+                    mainContent.after(badge);
+                }
+                
+                const score = result.score.humanProbability;
+                const cls = score >= 90 ? 'excellent' : score >= 70 ? 'good' : 'poor';
+                badge.className = `detection-badge ${cls}`;
+                badge.innerHTML = `🛡️ AI Detection: ${score}% Human | ${100-score}% AI | ${result.attempts} passes`;
+                
+                // Update state
+                state.lastOutput = result.text;
+                
+                processingDiv.remove();
+                
+            } catch(e) {
+                processingDiv.innerHTML = `<div class="processing-step" style="color:var(--danger)">❌ Error: ${e.message}</div>`;
+            }
+            
+            // Re-enable buttons
+            actionsDiv.querySelectorAll('button').forEach(b => b.disabled = false);
+        }
+
+        function addTypingIndicator() {
+            const container = document.getElementById('chatContainer');
+            const msg = document.createElement('div');
+            msg.className = 'message assistant';
+            msg.id = 'typing-indicator';
+            msg.innerHTML = `
+                <div class="message-avatar">⚡</div>
+                <div class="message-content">
+                    <span class="spinner"></span> Processing through GIBSON GW Consensus Matrix...
+                </div>
+            `;
+            container.appendChild(msg);
+            msg.scrollIntoView({ behavior: 'smooth' });
+            return msg;
+        }
+
+        // --- MARKDOWN ---
+        function formatMarkdown(text) {
+            if (!text) return '';
+            try {
+                return marked.parse(text);
+            } catch(e) {
+                // Fallback
+                text = text.replace(/```(\w*)\n([\s\S]*?)```/g, '<pre><code>$2</code></pre>');
+                text = text.replace(/`([^`]+)`/g, '<code>$1</code>');
+                text = text.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+                text = text.replace(/\*([^*]+)\*/g, '<em>$1</em>');
+                text = text.replace(/\n/g, '<br>');
+                return text;
+            }
+        }
+
+        function extractSuggestions(text) {
+            const matches = text.match(/\[([^\]]+)\]/g);
+            if (matches) return matches.map(m => m.replace(/[\[\]]/g, '')).slice(0, 3);
+            return [];
+        }
+
+        // --- DOWNLOADS ---
+        async function downloadWord() {
+            if (!state.lastOutput) {
+                alert('No output to save.');
+                return;
+            }
+            
+            try {
+                const { Document, Packer, Paragraph, TextRun } = docx;
+                const doc = new Document({
+                    sections: [{
+                        children: [
+                            new Paragraph({ text: "GIBSON GW Matrix Output", heading: "Heading1" }),
+                            new Paragraph({ text: `Generated: ${new Date().toLocaleString()}` }),
+                            new Paragraph({ text: "" }),
+                            ...state.lastOutput.split('\n').map(line => 
+                                new Paragraph({ children: [new TextRun(line)] })
+                            )
+                        ]
+                    }]
+                });
+                const blob = await Packer.toBlob(doc);
+                saveAs(blob, "gibson_gw_output.docx");
+            } catch(e) {
+                const blob = new Blob([state.lastOutput], { type: 'text/plain' });
+                saveAs(blob, "gibson_gw_output.txt");
+            }
+        }
+
+        // --- UTILITIES ---
+        function toggleSidebar() {
+            document.getElementById('sidebar').classList.toggle('open');
+        }
+
+        function clearChat() {
+            if (confirm('Clear conversation?')) {
+                state.chatHistory = [];
+                state.lastOutput = '';
+                document.getElementById('chatContainer').innerHTML = `
+                    <div class="message assistant">
+                        <div class="message-avatar">⚡</div>
+                        <div class="message-content">Memory cleared. EDITH ready for new directives.</div>
+                    </div>
+                `;
+                localStorage.removeItem('gibson_gw_chat');
+            }
+        }
+
+        async function resetLearning() {
+            if (confirm('Reset all learning data? This cannot be undone.')) {
+                state.learningMemory = {
+                    interactions: 0, humanizations: 0, totalHumanScore: 0,
+                    webSearches: 0, level: 1, successfulPatterns: [],
+                    failedPatterns: [], userPreferences: {}, evolvedPrompts: {}
+                };
+                await saveLearningState();
+                updateLearningDisplay();
+                alert('Learning reset complete.');
+            }
+        }
+
+        function saveChatHistory() {
+            try {
+                localStorage.setItem('gibson_gw_chat', JSON.stringify(state.chatHistory.slice(-50)));
+            } catch(e) {}
+        }
+
+        function loadChatHistory() {
+            try {
+                const saved = localStorage.getItem('gibson_gw_chat');
+                if (saved) state.chatHistory = JSON.parse(saved);
+            } catch(e) {}
+        }
+
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('sw.js').catch(e => console.log('SW skipped:', e.message));
+        }
+
+        document.addEventListener('keydown', (e) => {
+            if ((e.ctrlKey || e.metaKey) && e.key === 'm') {
+                e.preventDefault();
+                toggleListening();
+            }
+            if (e.key === 'Escape') {
+                stopListening();
+                stopListeningOverlay();
+                speechSynthesis.cancel();
+            }
+        });
+
+        setInterval(updateSpeakerDisplay, 2000);
+    </script>
+</body>
+</html>
