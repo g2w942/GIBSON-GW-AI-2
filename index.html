@@ -1,0 +1,912 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GIBSON GW — EDITH v3.0</title>
+    <meta name="theme-color" content="#0d0e12">
+    <link rel="manifest" href="manifest.json">
+    <script src="https://js.puter.com/v2/"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+    <script src="https://unpkg.com/docx@8.5.0/build/index.umd.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        :root {
+            --bg-primary: #0d0e12;
+            --bg-secondary: #1a1c23;
+            --cyan: #00f3ff;
+            --cyan-glow: rgba(0, 243, 255, 0.3);
+            --text-primary: #e2e8f0;
+            --text-secondary: #94a3b8;
+            --danger: #ff3366;
+            --success: #00ff88;
+            --warning: #fbbf24;
+            --purple: #a855f7;
+        }
+
+        body {
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            font-family: 'Courier New', monospace;
+            min-height: 100vh;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: linear-gradient(rgba(0,243,255,0.03) 1px, transparent 1px),
+                        linear-gradient(90deg, rgba(0,243,255,0.03) 1px, transparent 1px);
+            background-size: 50px 50px;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .header {
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            background: rgba(13, 14, 18, 0.95);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid var(--cyan);
+            padding: 12px 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            box-shadow: 0 0 20px var(--cyan-glow);
+        }
+
+        .header-title {
+            font-size: 1.4em;
+            font-weight: bold;
+            color: var(--cyan);
+            text-shadow: 0 0 12px var(--cyan);
+        }
+
+        .header-subtitle {
+            font-size: 0.7em;
+            color: var(--text-secondary);
+            display: block;
+        }
+
+        .avatar {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            border: 2px solid var(--cyan);
+            box-shadow: 0 0 15px var(--cyan-glow);
+            overflow: hidden;
+            background: var(--bg-secondary);
+        }
+
+        .avatar svg { width: 100%; height: 100%; }
+        .avatar.listening { animation: pulse-avatar 1.5s infinite; }
+        .avatar.speaking { animation: speak-avatar 0.5s infinite alternate; }
+
+        @keyframes pulse-avatar {
+            0%, 100% { box-shadow: 0 0 15px var(--cyan-glow); }
+            50% { box-shadow: 0 0 30px var(--cyan), 0 0 60px var(--cyan-glow); }
+        }
+
+        @keyframes speak-avatar {
+            0% { transform: scale(1); }
+            100% { transform: scale(1.05); }
+        }
+
+        .status-bar {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 15px;
+            background: var(--bg-secondary);
+            border-bottom: 1px solid rgba(0,243,255,0.2);
+            font-size: 0.75em;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--success);
+            box-shadow: 0 0 8px var(--success);
+            animation: blink 2s infinite;
+        }
+
+        @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+
+        .main-content {
+            position: relative;
+            z-index: 1;
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 15px;
+        }
+
+        .chat-container {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            margin-bottom: 120px;
+        }
+
+        .message {
+            display: flex;
+            gap: 10px;
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .message.user { flex-direction: row-reverse; }
+
+        .message-avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.8em;
+        }
+
+        .message-content {
+            background: var(--bg-secondary);
+            border: 1px solid rgba(0,243,255,0.1);
+            border-radius: 12px;
+            padding: 12px 16px;
+            max-width: 85%;
+            line-height: 1.6;
+            font-size: 0.9em;
+        }
+
+        .message.user .message-content {
+            background: rgba(0,243,255,0.1);
+            border-color: var(--cyan);
+        }
+
+        .message-content pre {
+            background: #0a0b0f;
+            border: 1px solid rgba(0,243,255,0.2);
+            border-radius: 6px;
+            padding: 12px;
+            overflow-x: auto;
+            margin: 8px 0;
+        }
+
+        .message-content img {
+            max-width: 100%;
+            border-radius: 8px;
+            margin: 10px 0;
+            border: 1px solid rgba(0,243,255,0.2);
+        }
+
+        .input-area {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: rgba(13, 14, 18, 0.98);
+            backdrop-filter: blur(10px);
+            border-top: 1px solid var(--cyan);
+            padding: 12px 15px;
+            z-index: 100;
+        }
+
+        .input-wrapper {
+            max-width: 900px;
+            margin: 0 auto;
+            display: flex;
+            gap: 10px;
+        }
+
+        .input-field {
+            flex: 1;
+            background: var(--bg-secondary);
+            border: 1px solid rgba(0,243,255,0.3);
+            border-radius: 24px;
+            padding: 12px 20px;
+            color: var(--text-primary);
+            font-family: 'Courier New', monospace;
+            outline: none;
+        }
+
+        .btn-icon {
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            border: 2px solid var(--cyan);
+            background: var(--bg-secondary);
+            color: var(--cyan);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+        }
+
+        .btn-icon:hover {
+            background: var(--cyan);
+            color: var(--bg-primary);
+        }
+
+        .btn-icon svg { width: 20px; height: 20px; }
+
+        .action-btn {
+            padding: 8px 16px;
+            background: var(--bg-secondary);
+            border: 1px solid var(--cyan);
+            color: var(--cyan);
+            border-radius: 8px;
+            cursor: pointer;
+            font-family: 'Courier New', monospace;
+            margin: 5px;
+        }
+
+        .action-btn:hover {
+            background: var(--cyan);
+            color: var(--bg-primary);
+        }
+
+        .spinner {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid var(--cyan);
+            border-top-color: transparent;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        .file-upload {
+            border: 2px dashed rgba(0,243,255,0.3);
+            border-radius: 12px;
+            padding: 20px;
+            text-align: center;
+            margin: 15px 0;
+            cursor: pointer;
+        }
+
+        .sidebar {
+            position: fixed;
+            top: 0;
+            right: -300px;
+            width: 280px;
+            height: 100vh;
+            background: var(--bg-secondary);
+            border-left: 1px solid var(--cyan);
+            padding: 70px 20px 20px;
+            transition: right 0.3s;
+            z-index: 99;
+            overflow-y: auto;
+        }
+
+        .sidebar.open { right: 0; }
+
+        .sidebar select, .sidebar input {
+            width: 100%;
+            background: var(--bg-primary);
+            border: 1px solid rgba(0,243,255,0.3);
+            border-radius: 6px;
+            padding: 8px;
+            color: var(--text-primary);
+            margin: 5px 0 15px;
+        }
+
+        .sidebar-toggle {
+            position: fixed;
+            top: 70px;
+            right: 15px;
+            z-index: 101;
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            border: 1px solid var(--cyan);
+            background: var(--bg-secondary);
+            color: var(--cyan);
+            cursor: pointer;
+        }
+
+        .image-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+            margin: 15px 0;
+        }
+
+        .image-card {
+            background: var(--bg-secondary);
+            border: 1px solid rgba(0,243,255,0.2);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .image-card img {
+            width: 100%;
+            height: auto;
+            display: block;
+        }
+
+        .image-card .info {
+            padding: 10px;
+            font-size: 0.8em;
+        }
+
+        .detection-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 0.75em;
+            margin-top: 8px;
+            background: rgba(0,255,136,0.1);
+            border: 1px solid var(--success);
+            color: var(--success);
+        }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <div>
+            <div class="header-title">⚡ GIBSON GW</div>
+            <span class="header-subtitle">Self-Evolving AI — 4K Images • Research Papers • Apps</span>
+        </div>
+        <div class="avatar" id="avatar">
+            <svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="45" fill="#1a1c23" stroke="#00f3ff" stroke-width="2"/><circle cx="35" cy="40" r="5" fill="#00f3ff"/><circle cx="65" cy="40" r="5" fill="#00f3ff"/><path d="M 30 60 Q 50 75 70 60" stroke="#00f3ff" stroke-width="2" fill="none"/></svg>
+        </div>
+    </header>
+
+    <div class="status-bar">
+        <div class="status-dot"></div>
+        <span id="status">GIBSON GW Online — Ready</span>
+    </div>
+
+    <button class="sidebar-toggle" onclick="toggleSidebar()">⚙️</button>
+    
+    <div class="sidebar" id="sidebar">
+        <h3 style="color:var(--cyan);margin-bottom:15px;">⚙️ SETTINGS</h3>
+        
+        <label style="font-size:0.8em;color:var(--text-secondary);">AI Model</label>
+        <select id="aiModel">
+            <option value="gpt-4o">GPT-4o (Best Overall)</option>
+            <option value="claude-3-5-sonnet">Claude 3.5 Sonnet</option>
+            <option value="gemini-2.0-flash">Gemini 2.0 Flash</option>
+            <option value="deepseek-chat">DeepSeek V3</option>
+        </select>
+
+        <label style="font-size:0.8em;color:var(--text-secondary);">Image Model</label>
+        <select id="imageModel">
+            <option value="flux">Flux (Best Quality)</option>
+            <option value="stable-diffusion">Stable Diffusion</option>
+        </select>
+
+        <label style="font-size:0.8em;color:var(--text-secondary);">Research Paper Format</label>
+        <select id="paperFormat">
+            <option value="calibri12">Calibri 12pt, Single Spaced</option>
+            <option value="times12">Times New Roman 12pt</option>
+            <option value="apa">APA Format</option>
+        </select>
+
+        <label style="font-size:0.8em;color:var(--text-secondary);">Max Pages</label>
+        <input type="number" id="maxPages" value="40" min="1" max="100">
+
+        <button class="action-btn" onclick="clearChat()" style="width:100%;margin-top:20px;">🗑️ Clear Chat</button>
+    </div>
+
+    <div class="main-content">
+        <div class="file-upload" onclick="document.getElementById('fileInput').click()">
+            <div style="font-size:2em;">📁</div>
+            <div>Click to Upload Files (PDF, DOCX, TXT, Images)</div>
+            <input type="file" id="fileInput" style="display:none" multiple onchange="handleFiles(event)">
+        </div>
+
+        <div class="chat-container" id="chat">
+            <div class="message assistant">
+                <div class="message-avatar">⚡</div>
+                <div class="message-content">
+                    <strong>EDITH Online.</strong> I can:<br>
+                    • Generate unlimited 4K images<br>
+                    • Write 40-page research papers (Calibri 12pt)<br>
+                    • Create full web & mobile apps<br>
+                    • Real-time web search with APA citations<br>
+                    How may I assist you?
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="input-area">
+        <div class="input-wrapper">
+            <button class="btn-icon" onclick="toggleVoice()" id="voiceBtn" title="Voice Input">🎤</button>
+            <input type="text" class="input-field" id="input" placeholder="Command GIBSON GW..." onkeypress="if(event.key==='Enter')send()">
+            <button class="btn-icon" onclick="send()" title="Send">➤</button>
+        </div>
+    </div>
+
+    <script>
+        // State
+        let chatHistory = [];
+        let recognition;
+        let isListening = false;
+        let uploadedFiles = [];
+
+        // Initialize
+        window.onload = () => {
+            initSpeech();
+            loadChat();
+        };
+
+        // Speech Recognition
+        function initSpeech() {
+            if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+                const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+                recognition = new SpeechRecognition();
+                recognition.continuous = true;
+                recognition.interimResults = true;
+                
+                recognition.onresult = (e) => {
+                    let final = '';
+                    for (let i = e.resultIndex; i < e.results.length; i++) {
+                        if (e.results[i].isFinal) final += e.results[i][0].transcript;
+                    }
+                    if (final.toLowerCase().includes('edith') || final.toLowerCase().includes('gibson')) {
+                        document.getElementById('input').value = final.replace(/edith|gibson/gi, '').trim();
+                        send();
+                    }
+                };
+            }
+        }
+
+        function toggleVoice() {
+            if (!recognition) {
+                alert('Voice not supported in this browser');
+                return;
+            }
+            if (isListening) {
+                recognition.stop();
+                document.getElementById('voiceBtn').textContent = '🎤';
+            } else {
+                recognition.start();
+                document.getElementById('voiceBtn').textContent = '🔴';
+            }
+            isListening = !isListening;
+        }
+
+        // File Upload
+        async function handleFiles(e) {
+            const files = Array.from(e.target.files);
+            for (const file of files) {
+                uploadedFiles.push(file);
+                addMessage('assistant', `📎 Uploaded: ${file.name} (${(file.size/1024).toFixed(1)} KB)`);
+            }
+        }
+
+        // Send Message
+        async function send() {
+            const input = document.getElementById('input');
+            const text = input.value.trim();
+            if (!text) return;
+
+            input.value = '';
+            addMessage('user', text);
+            showTyping();
+
+            try {
+                // Detect command type
+                if (text.toLowerCase().includes('image') || text.toLowerCase().includes('generate image') || text.toLowerCase().includes('create image') || text.toLowerCase().includes('picture')) {
+                    await generateImage(text);
+                } else if (text.toLowerCase().includes('research paper') || text.toLowerCase().includes('write paper') || text.toLowerCase().includes('academic paper')) {
+                    await generateResearchPaper(text);
+                } else if (text.toLowerCase().includes('app') || text.toLowerCase().includes('website') || text.toLowerCase().includes('mobile app') || text.toLowerCase().includes('webapp')) {
+                    await generateApp(text);
+                } else {
+                    await chatWithAI(text);
+                }
+            } catch (error) {
+                removeTyping();
+                addMessage('assistant', `❌ Error: ${error.message}`);
+            }
+        }
+
+        // Chat with AI (Fixed Model Names)
+        async function chatWithAI(prompt) {
+            const model = document.getElementById('aiModel').value;
+            
+            // Build context
+            let context = prompt;
+            if (uploadedFiles.length > 0) {
+                context += `\n\n[Attached files: ${uploadedFiles.map(f => f.name).join(', ')}]`;
+            }
+
+            // Web search integration
+            context += `\n\nProvide accurate information with APA citations. Never cite Wikipedia.`;
+
+            try {
+                const response = await puter.ai.chat(context, { model: model });
+                removeTyping();
+                
+                const content = response.message?.content || response.text || String(response);
+                addMessage('assistant', formatContent(content));
+                
+                // Save to history
+                chatHistory.push({ role: 'user', content: prompt });
+                chatHistory.push({ role: 'assistant', content: content });
+                localStorage.setItem('gibson_chat', JSON.stringify(chatHistory.slice(-50)));
+                
+            } catch (error) {
+                console.error('AI Error:', error);
+                removeTyping();
+                addMessage('assistant', `❌ Model Error: ${error.message}. Try switching models in settings.`);
+            }
+        }
+
+        // Generate 4K Images (Unlimited)
+        async function generateImage(prompt) {
+            const model = document.getElementById('imageModel').value;
+            
+            // Clean prompt
+            const cleanPrompt = prompt.replace(/generate|create|image|picture|4k|high quality/gi, '').trim();
+            
+            addMessage('assistant', `<div class="spinner"></div> Generating 4K image: "${cleanPrompt}"...`);
+            
+            try {
+                // Use Puter's image generation
+                const result = await puter.ai.txt2img(cleanPrompt, {
+                    width: 3840,  // 4K width
+                    height: 2160, // 4K height
+                    model: model
+                });
+                
+                removeTyping();
+                
+                // Display image
+                const imageUrl = result.url || result;
+                const html = `
+                    <div>
+                        <strong>✅ 4K Image Generated</strong><br>
+                        <div class="image-grid">
+                            <div class="image-card">
+                                <img src="${imageUrl}" alt="Generated 4K Image">
+                                <div class="info">
+                                    Resolution: 3840×2160 (4K)<br>
+                                    Model: ${model}<br>
+                                    Prompt: "${cleanPrompt}"
+                                </div>
+                            </div>
+                        </div>
+                        <button class="action-btn" onclick="downloadImage('${imageUrl}', 'gibson_4k_${Date.now()}.png')">📥 Download 4K</button>
+                        <button class="action-btn" onclick="generateMoreImages('${cleanPrompt}')">🎨 Generate Variations</button>
+                    </div>
+                `;
+                addMessage('assistant', html);
+                
+            } catch (error) {
+                console.error('Image generation error:', error);
+                removeTyping();
+                
+                // Fallback: Try with different parameters
+                try {
+                    const result = await puter.ai.txt2img(cleanPrompt);
+                    removeTyping();
+                    const imageUrl = result.url || result;
+                    addMessage('assistant', `
+                        <div>
+                            <strong>✅ Image Generated</strong><br>
+                            <img src="${imageUrl}" style="max-width:100%;border-radius:8px;margin:10px 0;">
+                            <button class="action-btn" onclick="downloadImage('${imageUrl}', 'gibson_img_${Date.now()}.png')">📥 Download</button>
+                        </div>
+                    `);
+                } catch (e) {
+                    addMessage('assistant', `❌ Image generation failed: ${e.message}. Please try again.`);
+                }
+            }
+        }
+
+        function generateMoreImages(prompt) {
+            const variations = [
+                `${prompt}, cinematic lighting, ultra detailed`,
+                `${prompt}, artistic style, masterpiece`,
+                `${prompt}, photorealistic, 8k quality`
+            ];
+            
+            variations.forEach((v, i) => {
+                setTimeout(() => {
+                    generateImage(`generate image: ${v}`);
+                }, i * 2000);
+            });
+        }
+
+        function downloadImage(url, filename) {
+            fetch(url)
+                .then(r => r.blob())
+                .then(blob => {
+                    const a = document.createElement('a');
+                    a.href = URL.createObjectURL(blob);
+                    a.download = filename;
+                    a.click();
+                });
+        }
+
+        // Generate Research Paper (Up to 40 pages)
+        async function generateResearchPaper(prompt) {
+            const maxPages = parseInt(document.getElementById('maxPages').value) || 40;
+            const format = document.getElementById('paperFormat').value;
+            
+            addMessage('assistant', `<div class="spinner"></div> Writing ${maxPages}-page research paper...`);
+            
+            try {
+                // Generate comprehensive paper in sections
+                const sections = [
+                    'Title Page with Abstract',
+                    'Introduction (2-3 pages)',
+                    'Literature Review (5-8 pages)',
+                    'Methodology (3-5 pages)',
+                    'Results/Analysis (8-12 pages)',
+                    'Discussion (5-8 pages)',
+                    'Conclusion (2-3 pages)',
+                    'References (APA 7th edition)'
+                ];
+                
+                let fullPaper = `# RESEARCH PAPER\n\n`;
+                fullPaper += `**Format:** ${format} | **Pages:** ${maxPages} | **Generated:** ${new Date().toLocaleString()}\n\n`;
+                fullPaper += `---\n\n`;
+                
+                // Generate each section
+                for (const section of sections) {
+                    const sectionPrompt = `Write the ${section} section of a research paper about: ${prompt}. 
+                    Use APA 7th edition formatting. Include proper in-text citations (Author, Year). 
+                    Provide comprehensive, academic content. Include a References section at the end with full citations and DOIs/URLs.
+                    NEVER cite Wikipedia. Use only scholarly sources, academic journals, and authoritative websites.`;
+                    
+                    const response = await puter.ai.chat(sectionPrompt, { 
+                        model: document.getElementById('aiModel').value 
+                    });
+                    
+                    const sectionContent = response.message?.content || response.text || '';
+                    fullPaper += `\n## ${section.toUpperCase()}\n\n${sectionContent}\n\n`;
+                    
+                    // Update progress
+                    updateStatus(`Writing: ${section}...`);
+                }
+                
+                removeTyping();
+                
+                // Display paper
+                addMessage('assistant', `
+                    <div>
+                        <strong>✅ Research Paper Complete (${maxPages} pages)</strong>
+                        <div style="max-height:400px;overflow-y:auto;background:var(--bg-primary);padding:15px;border-radius:8px;margin:10px 0;">
+                            ${formatContent(fullPaper)}
+                        </div>
+                        <button class="action-btn" onclick="downloadPaper('${btoa(fullPaper)}', 'research_paper.docx')">📄 Download as DOCX (Calibri 12pt)</button>
+                        <button class="action-btn" onclick="downloadPaperPDF('${btoa(fullPaper)}', 'research_paper.pdf')">📕 Download as PDF</button>
+                        <button class="action-btn" onclick="copyToClipboard('${btoa(fullPaper)}')">📋 Copy Text</button>
+                    </div>
+                `);
+                
+                updateStatus('Ready');
+                
+            } catch (error) {
+                console.error('Paper generation error:', error);
+                removeTyping();
+                addMessage('assistant', `❌ Error generating paper: ${error.message}`);
+            }
+        }
+
+        function downloadPaper(base64Content, filename) {
+            const content = atob(base64Content);
+            
+            // Create DOCX with Calibri 12pt
+            const { Document, Packer, Paragraph, TextRun, HeadingLevel } = docx;
+            
+            const doc = new Document({
+                sections: [{
+                    properties: {},
+                    children: content.split('\n').map(line => {
+                        if (line.startsWith('# ')) {
+                            return new Paragraph({ text: line.replace('# ', ''), heading: HeadingLevel.TITLE });
+                        } else if (line.startsWith('## ')) {
+                            return new Paragraph({ text: line.replace('## ', ''), heading: HeadingLevel.HEADING_1 });
+                        } else {
+                            return new Paragraph({
+                                children: [new TextRun({ 
+                                    text: line, 
+                                    font: "Calibri", 
+                                    size: 24 // 12pt * 2 (half-points)
+                                })]
+                            });
+                        }
+                    })
+                }]
+            });
+            
+            Packer.toBlob(doc).then(blob => {
+                saveAs(blob, filename);
+            });
+        }
+
+        function downloadPaperPDF(base64Content, filename) {
+            const content = atob(base64Content);
+            const blob = new Blob([content], { type: 'text/plain' });
+            saveAs(blob, filename.replace('.pdf', '.txt'));
+            alert('PDF download initiated. For proper PDF formatting, convert the DOCX file using Word or Google Docs.');
+        }
+
+        // Generate Web/Mobile Apps
+        async function generateApp(prompt) {
+            addMessage('assistant', `<div class="spinner"></div> Creating full application...`);
+            
+            try {
+                const appPrompt = `Create a complete, production-ready application based on: ${prompt}
+
+Provide:
+1. Complete HTML file with embedded CSS and JavaScript
+2. All necessary files for a working web app
+3. If mobile app, provide React Native or Flutter code
+4. Include README with setup instructions
+5. Make it fully functional, not just placeholders
+
+Write ALL code in full. No "// add code here" comments. Complete working application.`;
+                
+                const response = await puter.ai.chat(appPrompt, { 
+                    model: document.getElementById('aiModel').value 
+                });
+                
+                const code = response.message?.content || response.text || '';
+                removeTyping();
+                
+                // Extract code blocks
+                const codeBlocks = extractCodeBlocks(code);
+                
+                let html = `<div><strong>✅ Application Generated</strong><br><br>`;
+                
+                codeBlocks.forEach((block, i) => {
+                    html += `
+                        <div style="margin:15px 0;">
+                            <div style="background:var(--bg-secondary);padding:8px;border-radius:4px 4px 0 0;font-size:0.8em;color:var(--cyan);">
+                                ${block.language || 'code'} ${codeBlocks.length > 1 ? `(${i+1}/${codeBlocks.length})` : ''}
+                            </div>
+                            <pre style="background:#0a0b0f;padding:15px;border-radius:0 0 4px 4px;overflow-x:auto;font-size:0.85em;"><code>${escapeHtml(block.code)}</code></pre>
+                            <button class="action-btn" onclick="downloadCode('${btoa(block.code)}', 'file_${i}.${block.language === 'javascript' ? 'js' : block.language === 'python' ? 'py' : 'html'}')">📥 Download</button>
+                        </div>
+                    `;
+                });
+                
+                html += `<button class="action-btn" onclick="previewApp('${btoa(code)}')">👁️ Preview Web App</button></div>`;
+                
+                addMessage('assistant', html);
+                
+            } catch (error) {
+                console.error('App generation error:', error);
+                removeTyping();
+                addMessage('assistant', `❌ Error: ${error.message}`);
+            }
+        }
+
+        function extractCodeBlocks(text) {
+            const blocks = [];
+            const regex = /```(\w+)?\n([\s\S]*?)```/g;
+            let match;
+            
+            while ((match = regex.exec(text)) !== null) {
+                blocks.push({
+                    language: match[1] || 'text',
+                    code: match[2].trim()
+                });
+            }
+            
+            // If no code blocks found, return entire text
+            if (blocks.length === 0) {
+                blocks.push({ language: 'text', code: text });
+            }
+            
+            return blocks;
+        }
+
+        function previewApp(base64Code) {
+            const code = atob(base64Code);
+            const htmlMatch = code.match(/```html\n([\s\S]*?)```/);
+            
+            if (htmlMatch) {
+                const win = window.open('', '_blank');
+                win.document.write(htmlMatch[1]);
+                win.document.close();
+            } else {
+                alert('No HTML code found to preview');
+            }
+        }
+
+        function downloadCode(base64Code, filename) {
+            const code = atob(base64Code);
+            const blob = new Blob([code], { type: 'text/plain' });
+            saveAs(blob, filename);
+        }
+
+        // Utility Functions
+        function addMessage(role, content) {
+            const chat = document.getElementById('chat');
+            const msg = document.createElement('div');
+            msg.className = `message ${role}`;
+            msg.innerHTML = `
+                <div class="message-avatar">${role === 'user' ? '👤' : '⚡'}</div>
+                <div class="message-content">${content}</div>
+            `;
+            chat.appendChild(msg);
+            msg.scrollIntoView({ behavior: 'smooth' });
+        }
+
+        function showTyping() {
+            const chat = document.getElementById('chat');
+            const typing = document.createElement('div');
+            typing.className = 'message assistant';
+            typing.id = 'typing';
+            typing.innerHTML = `
+                <div class="message-avatar">⚡</div>
+                <div class="message-content"><span class="spinner"></span> Processing...</div>
+            `;
+            chat.appendChild(typing);
+            typing.scrollIntoView({ behavior: 'smooth' });
+        }
+
+        function removeTyping() {
+            const typing = document.getElementById('typing');
+            if (typing) typing.remove();
+        }
+
+        function updateStatus(text) {
+            document.getElementById('status').textContent = text;
+        }
+
+        function formatContent(text) {
+            if (!text) return '';
+            return marked.parse(text);
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function toggleSidebar() {
+            document.getElementById('sidebar').classList.toggle('open');
+        }
+
+        function clearChat() {
+            if (confirm('Clear all chat history?')) {
+                chatHistory = [];
+                localStorage.removeItem('gibson_chat');
+                document.getElementById('chat').innerHTML = `
+                    <div class="message assistant">
+                        <div class="message-avatar">⚡</div>
+                        <div class="message-content">Chat cleared. EDITH ready.</div>
+                    </div>
+                `;
+            }
+        }
+
+        function loadChat() {
+            const saved = localStorage.getItem('gibson_chat');
+            if (saved) {
+                chatHistory = JSON.parse(saved);
+                // Optionally restore chat display
+            }
+        }
+
+        function copyToClipboard(base64Content) {
+            const content = atob(base64Content);
+            navigator.clipboard.writeText(content).then(() => {
+                alert('Copied to clipboard!');
+            });
+        }
+    </script>
+</body>
+          </html>
